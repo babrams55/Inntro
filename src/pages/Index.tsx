@@ -27,12 +27,10 @@ const Index = () => {
         .single();
 
       if (referralError) {
-        // If not a partner code, proceed with city selection
         navigate(`/city-selection`);
         return;
       }
 
-      // If it's a valid partner code, mark it as used and redirect to swipe screen
       await supabase
         .from('referral_codes')
         .update({ used: true })
@@ -59,7 +57,7 @@ const Index = () => {
           <Sparkles className="h-12 w-12 text-pink-400 animate-pulse" />
           <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
         </div>
-        <h1 className="text-4xl font-bold mb-8 text-white text-center font-['SF Pro Display','sans-serif']">Inntro "double dates"</h1>
+        <h1 className="text-4xl font-bold mb-8 text-white text-center font-['SF Pro Display','sans-serif']">Inntro Social</h1>
         
         <div className="space-y-4 w-64 mx-auto">
           <div className="flex gap-2 items-center">
