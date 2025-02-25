@@ -11,9 +11,9 @@ const CitySelection = () => {
   const navigate = useNavigate();
 
   const cities: { name: City; image: string }[] = [
-    { name: "NYC", image: "/placeholder.svg" },
-    { name: "Chicago", image: "/placeholder.svg" },
-    { name: "LA", image: "/placeholder.svg" }
+    { name: "NYC", image: "/lovable-uploads/e1085649-7490-4989-a413-a86db207d414.png" },
+    { name: "Chicago", image: "/lovable-uploads/6a74b48a-e905-464a-97fe-ce0ae56f7cf2.png" },
+    { name: "LA", image: "/lovable-uploads/6c17a9a9-e53c-43bb-98f5-c75dd88ede97.png" }
   ];
 
   const handleContinue = () => {
@@ -38,8 +38,8 @@ const CitySelection = () => {
           >
             <img
               src={city.image}
-              alt={city.name}
-              className="w-32 h-48 object-cover"
+              alt={`${city.name} skyline`}
+              className="w-48 h-64 object-cover"
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
               <p className="text-white text-center font-semibold">{city.name}</p>
