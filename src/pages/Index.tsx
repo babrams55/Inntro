@@ -104,7 +104,7 @@ export default function Index() {
 
         {!showRequestForm ? <div className="space-y-4">
             <div className="space-y-2">
-              <Input type="text" placeholder="Enter access code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={6} className="text-center text-lg rounded-2xl bg-pink-400 text-gray-900 placeholder:text-gray-700" />
+              <Input type="text" placeholder="Enter access code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={6} className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70" />
               <Button className="w-full" onClick={handleSubmit} disabled={loading || !code}>
                 {loading ? "Checking..." : "Continue"}
               </Button>
