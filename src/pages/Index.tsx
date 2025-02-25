@@ -6,11 +6,15 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { useVerification } from "@/hooks/useVerification";
 
 const Index = () => {
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmailInput, setShowEmailInput] = useState(false);
   const navigate = useNavigate();
+  const { sendVerification, verifyCode } = useVerification(email);
   
   const handleSubmitCode = async () => {
     if (code.length !== 6) return;
@@ -27,7 +31,11 @@ const Index = () => {
         .single();
 
       if (referralError) {
-        navigate(`/city-selection`);
+        toast({
+          variant: "destructive",
+          title: "Invalid code",
+          description: "Please check your code and try again.",
+        });
         return;
       }
 
@@ -36,7 +44,7 @@ const Index = () => {
         .update({ used: true })
         .eq('code', code);
 
-      navigate('/swipe');
+      navigate('/city-selection');
       
     } catch (error) {
       toast({

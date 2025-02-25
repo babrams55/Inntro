@@ -15,16 +15,53 @@ export const useReferralCode = () => {
     ).join('');
   };
 
-  const createReferralCode = async (email: string) => {
+  const createReferralCode = async (email: string, sendEmail = true) => {
     const newCode = generateReferralCode();
+    
+    // Create the referral code in the database
     const { error: referralError } = await supabase
       .from('referral_codes')
       .insert([{
         code: newCode,
-        created_by_email: email
+        created_by_email: email,
+        email_to: email,
+        email_sent: false
       }]);
 
-    if (referralError) throw referralError;
+    if (referralError) {
+      console.error('Error creating referral code:', referralError);
+      throw referralError;
+    }
+
+    // Send the email if requested
+    if (sendEmail) {
+      try {
+        const { error } = await supabase.functions.invoke('send-referral', {
+          body: { code: newCode, email }
+        });
+
+        if (error) throw error;
+
+        // Update the referral code to mark email as sent
+        await supabase
+          .from('referral_codes')
+          .update({ email_sent: true })
+          .eq('code', newCode);
+
+        toast({
+          title: "Code sent!",
+          description: "Check your email for the access code.",
+        });
+      } catch (error) {
+        console.error('Error sending email:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to send email. The code was created but couldn't be sent.",
+        });
+      }
+    }
+
     setGeneratedReferralCode(newCode);
     return newCode;
   };
@@ -57,7 +94,7 @@ export const useReferralCode = () => {
       setReferralCopied(true);
       toast({
         title: "Code copied!",
-        description: "Share this code with your partner to complete signup.",
+        description: "Share this code to invite others.",
       });
       setTimeout(() => setReferralCopied(false), 2000);
     } catch (err) {

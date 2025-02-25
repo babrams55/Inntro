@@ -14,6 +14,8 @@ export type Database = {
           code: string
           created_at: string
           created_by_email: string | null
+          email_sent: boolean | null
+          email_to: string | null
           expires_at: string
           id: string
           used: boolean | null
@@ -23,6 +25,8 @@ export type Database = {
           code: string
           created_at?: string
           created_by_email?: string | null
+          email_sent?: boolean | null
+          email_to?: string | null
           expires_at?: string
           id?: string
           used?: boolean | null
@@ -32,6 +36,8 @@ export type Database = {
           code?: string
           created_at?: string
           created_by_email?: string | null
+          email_sent?: boolean | null
+          email_to?: string | null
           expires_at?: string
           id?: string
           used?: boolean | null
