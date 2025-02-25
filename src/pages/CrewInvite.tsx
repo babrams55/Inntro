@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -12,7 +13,6 @@ const CrewInvite = () => {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("code");
   
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [email, setEmail] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
@@ -75,11 +75,11 @@ const CrewInvite = () => {
       
       const { error: dbError } = await supabase
         .from('verification_codes')
-        .insert([{ 
+        .insert({ 
           email, 
           code,
           expires_at: new Date(Date.now() + 15 * 60000).toISOString() // 15 minutes
-        }]);
+        });
 
       if (dbError) throw dbError;
 
