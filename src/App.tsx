@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import CrewInvite from "./pages/CrewInvite";
+import ProfileSetup from "./pages/ProfileSetup";
 import SwipeScreen from "./pages/SwipeScreen";
 import ChatScreen from "./pages/ChatScreen";
 import NotFound from "./pages/NotFound";
@@ -21,6 +22,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/crew-invite" element={<CrewInvite />} />
+          <Route path="/profile-setup" element={<ProfileSetup />} />
           <Route path="/swipe" element={<SwipeScreen />} />
           <Route path="/chat" element={<ChatScreen />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

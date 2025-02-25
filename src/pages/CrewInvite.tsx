@@ -3,83 +3,95 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
 const CrewInvite = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("code");
+  
   const [phoneNumber, setPhoneNumber] = useState("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const generateVerificationCode = () => {
     return Math.random().toString().substr(2, 6);
   };
+
   const handleSendVerificationCode = async () => {
     if (!email) return;
+    
     setLoading(true);
     try {
       const code = generateVerificationCode();
-
+      
       // Store the verification code
-      const {
-        error: dbError
-      } = await supabase.from('verification_codes').insert([{
-        email,
-        code
-      }]);
+      const { error: dbError } = await supabase
+        .from('verification_codes')
+        .insert([{ email, code }]);
+
       if (dbError) throw dbError;
 
       // Send the verification email
       const response = await supabase.functions.invoke('send-verification', {
-        body: {
-          email,
-          code
-        }
+        body: { email, code }
       });
+
       if (response.error) throw response.error;
+
       setShowVerificationInput(true);
       toast({
         title: "Verification code sent!",
-        description: "Please check your email for the verification code."
+        description: "Please check your email for the verification code.",
       });
     } catch (error) {
       console.error('Error sending verification code:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send verification code. Please try again."
+        description: "Failed to send verification code. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
+
   const handleSignup = async () => {
     if (!phoneNumber || !gender || !email) return;
+    
     try {
       setLoading(true);
 
       // Verify the code
-      const {
-        data: codes,
-        error: verifyError
-      } = await supabase.from('verification_codes').select('*').eq('email', email).eq('code', verificationCode).eq('used', false).gt('expires_at', new Date().toISOString()).limit(1).single();
+      const { data: codes, error: verifyError } = await supabase
+        .from('verification_codes')
+        .select('*')
+        .eq('email', email)
+        .eq('code', verificationCode)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .single();
+
       if (verifyError || !codes) {
         toast({
           variant: "destructive",
           title: "Invalid code",
-          description: "Please check your verification code and try again."
+          description: "Please check your verification code and try again.",
         });
         return;
       }
 
       // Mark code as used
-      await supabase.from('verification_codes').update({
-        used: true
-      }).eq('id', codes.id);
+      await supabase
+        .from('verification_codes')
+        .update({ used: true })
+        .eq('id', codes.id);
 
       // Proceed with signup
       console.log("Signing up:", {
@@ -88,21 +100,26 @@ const CrewInvite = () => {
         email,
         referralCode
       });
+
       toast({
         title: "Success!",
-        description: "Your account has been created."
+        description: "Your account has been created.",
       });
+
+      // Navigate to profile setup
+      navigate("/profile-setup");
     } catch (error) {
       console.error('Error during signup:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to complete signup. Please try again."
+        description: "Failed to complete signup. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
+
   return <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
         <h1 className="text-2xl font-bold mb-3 text-white">"the duo"</h1>
@@ -143,4 +160,5 @@ const CrewInvite = () => {
       </div>
     </div>;
 };
+
 export default CrewInvite;
