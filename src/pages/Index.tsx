@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -27,7 +28,6 @@ const Index = () => {
 
     setLoading(true);
     try {
-      // Send the request email to support
       const { error } = await supabase.functions.invoke('send-referral', {
         body: { 
           email: "support@inntro.us",
@@ -71,7 +71,6 @@ const Index = () => {
     
     setLoading(true);
     try {
-      // Check if this is a valid code
       const { data: referralData, error: referralError } = await supabase
         .from('referral_codes')
         .select('*')
@@ -108,81 +107,89 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <div className="text-center">
-        <div className="mb-4 flex items-center justify-center gap-4">
-          <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
-          <Sparkles className="h-12 w-12 text-pink-400 animate-pulse" />
-          <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
-        </div>
-        <h1 className="text-4xl font-bold mb-2 text-blue-500 text-center font-['SF Pro Display','sans-serif']">Inntro social</h1>
-        <p className="text-pink-400 mb-8 text-lg">"double dates"</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-black to-purple-900">
+      <div className="relative w-full max-w-md p-8 overflow-hidden">
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-xl rounded-2xl" />
         
-        <div className="space-y-4 w-64 mx-auto">
-          <div className="flex gap-2 items-center">
-            <Input 
-              type="text" 
-              value={code}
-              placeholder="access code"
-              onChange={e => setCode(e.target.value.toUpperCase())} 
-              maxLength={6} 
-              className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 
-              onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
-              disabled={loading}
-            />
-            <Button
-              onClick={handleSubmitCode}
-              disabled={code.length !== 6 || loading}
-              className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-400"
-            >
-              <ArrowRight className="h-4 w-4 text-pink-400" />
-            </Button>
+        <div className="relative z-10 text-center space-y-6">
+          <div className="flex items-center justify-center gap-4">
+            <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
+            <Sparkles className="h-12 w-12 text-pink-400 animate-pulse" />
+            <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
           </div>
           
-          {!showForm ? (
-            <Button
-              onClick={() => setShowForm(true)}
-              disabled={loading}
-              variant="outline"
-              className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
-            >
-              Request Access
-            </Button>
-          ) : (
-            <div className="space-y-3">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
-              />
-              <Input
-                type="text"
-                value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
-                placeholder="Instagram handle"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
-              />
-              <Input
-                type="text"
-                value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                placeholder="University"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+          <h1 className="text-4xl font-bold text-blue-400 font-['SF Pro Display','sans-serif']">
+            Inntro social
+          </h1>
+          <p className="text-pink-400 text-lg">"double dates"</p>
+          
+          <div className="space-y-4">
+            <div className="flex gap-2 items-center">
+              <Input 
+                type="text" 
+                value={code}
+                placeholder="access code"
+                onChange={e => setCode(e.target.value.toUpperCase())} 
+                maxLength={6} 
+                className="text-center text-xl tracking-wider font-mono bg-white/5 border-white/10 text-white placeholder:text-gray-400 rounded-full" 
+                onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
+                disabled={loading}
               />
               <Button
-                onClick={handleAccessRequest}
-                disabled={loading}
-                variant="outline"
-                className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
+                onClick={handleSubmitCode}
+                disabled={code.length !== 6 || loading}
+                className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-400"
               >
-                Submit Request
+                <ArrowRight className="h-4 w-4 text-white" />
               </Button>
             </div>
-          )}
+            
+            {!showForm ? (
+              <Button
+                onClick={() => setShowForm(true)}
+                disabled={loading}
+                variant="outline"
+                className="w-full text-white bg-white/5 border-white/10 hover:bg-white/10"
+              >
+                Request Access
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-full bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                />
+                <Input
+                  type="text"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder="Instagram handle"
+                  className="w-full bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                />
+                <Input
+                  type="text"
+                  value={university}
+                  onChange={(e) => setUniversity(e.target.value)}
+                  placeholder="University"
+                  className="w-full bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                />
+                <Button
+                  onClick={handleAccessRequest}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full text-white bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  Submit Request
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <p className="text-gray-400 text-sm">made for the cool twenty-somethings</p>
         </div>
-        <p className="text-gray-500 mt-8 text-sm">made for the cool twenty-somethings</p>
       </div>
     </div>
   );

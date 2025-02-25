@@ -3,10 +3,17 @@ export type SwipeDirection = 'like' | 'pass';
 
 export type Gender = 'M' | 'F';
 
+export type Pair = {
+  id: string;
+  names: string;
+  ages: string;
+  bio: string;
+  image: string;
+};
+
 export const SWIPE_THRESHOLD = 100;
 
-// Mock data for testing
-export const getMatchingPairs = (userGender: Gender) => {
+export const getMatchingPairs = (userGender: Gender): Pair[] => {
   return [
     {
       id: '1',
