@@ -12,7 +12,7 @@ const Index = () => {
   const handleSubmitCode = () => {
     if (code.length === 6) {
       console.log("Referral code submitted:", code);
-      navigate("/crew-invite");
+      navigate(`/crew-invite?code=${code}`);
     }
   };
 
@@ -46,6 +46,14 @@ const Index = () => {
               <ArrowRight className="h-4 w-4 text-white" />
             </Button>
           </div>
+
+          <Button
+            onClick={() => navigate('/crew-invite')}
+            variant="ghost"
+            className="w-full text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            Or sign up without a code
+          </Button>
         </div>
 
         <p className="text-sm text-gray-500 mt-6">
