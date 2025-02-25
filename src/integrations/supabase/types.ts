@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          approval_token: string
+          created_at: string
+          email: string
+          id: string
+          instagram: string
+          status: string
+          university: string
+        }
+        Insert: {
+          approval_token: string
+          created_at?: string
+          email: string
+          id?: string
+          instagram: string
+          status?: string
+          university: string
+        }
+        Update: {
+          approval_token?: string
+          created_at?: string
+          email?: string
+          id?: string
+          instagram?: string
+          status?: string
+          university?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string

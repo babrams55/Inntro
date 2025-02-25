@@ -1,21 +1,20 @@
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
-const Index = () => {
+export default function Index() {
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [email, setEmail] = useState("");
   const [instagram, setInstagram] = useState("");
   const [university, setUniversity] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  
+
   const handleAccessRequest = async () => {
     if (!email || !instagram || !university) {
       toast({
@@ -28,63 +27,61 @@ const Index = () => {
 
     setLoading(true);
     try {
-      // Send the email using the edge function
-      const { error } = await supabase.functions.invoke('send-referral', {
+      const { error } = await supabase.functions.invoke('handle-access', {
         body: { 
-          email: "support@inntro.us",
-          code: "REQUEST",
-          requestData: {
-            email,
-            instagram,
-            university
-          }
+          action: 'request',
+          email,
+          instagram,
+          university
         }
       });
 
-      if (error) {
-        console.error('Error from edge function:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
-        title: "Request sent!",
-        description: "We'll review your request and get back to you soon.",
+        title: "Request Sent",
+        description: "We'll review your request and get back to you soon!",
       });
-      setShowForm(false);
+      setShowRequestForm(false);
       setEmail("");
       setInstagram("");
       setUniversity("");
     } catch (error: any) {
-      console.error('Error sending request:', error);
+      console.error('Error requesting access:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send request. Please try again.",
+        description: "Failed to submit request. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmitCode = async () => {
-    if (code.length !== 6) return;
-    
+  const handleSubmit = async () => {
+    if (!code) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter an access code",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Check if this is a valid code
-      const { data: referralData, error: referralError } = await supabase
+      const { data, error } = await supabase
         .from('referral_codes')
-        .select('*')
-        .eq('code', code)
+        .select()
+        .eq('code', code.toUpperCase())
         .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
         .single();
 
-      if (referralError) {
+      if (error || !data) {
         toast({
           variant: "destructive",
-          title: "Invalid code",
-          description: "Please check your code and try again.",
+          title: "Invalid Code",
+          description: "Please check your code and try again",
         });
         return;
       }
@@ -92,15 +89,14 @@ const Index = () => {
       await supabase
         .from('referral_codes')
         .update({ used: true })
-        .eq('code', code);
+        .eq('id', data.id);
 
-      navigate('/city-selection');
-      
+      navigate("/city-selection");
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to validate code. Please try again.",
+        description: "Something went wrong. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -108,84 +104,86 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <div className="text-center">
-        <div className="mb-4 flex items-center justify-center gap-4">
-          <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
-          <Sparkles className="h-12 w-12 text-pink-400 animate-pulse" />
-          <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">Inntro</h1>
+          <p className="text-gray-400">double dates</p>
         </div>
-        <h1 className="text-4xl font-bold mb-2 text-blue-500 text-center font-['SF Pro Display','sans-serif']">Inntro social</h1>
-        <p className="text-pink-400 mb-8 text-lg">"double dates"</p>
-        
-        <div className="space-y-4 w-64 mx-auto">
-          <div className="flex gap-2 items-center">
-            <Input 
-              type="text" 
-              value={code}
-              placeholder="access code"
-              onChange={e => setCode(e.target.value.toUpperCase())} 
-              maxLength={6} 
-              className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 
-              onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
-              disabled={loading}
-            />
-            <Button
-              onClick={handleSubmitCode}
-              disabled={code.length !== 6 || loading}
-              className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-400"
-            >
-              <ArrowRight className="h-4 w-4 text-pink-400" />
-            </Button>
-          </div>
-          
-          {!showForm ? (
-            <Button
-              onClick={() => setShowForm(true)}
-              disabled={loading}
-              variant="outline"
-              className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
-            >
-              Request Access
-            </Button>
-          ) : (
-            <div className="space-y-3">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
-              />
+
+        {!showRequestForm ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
               <Input
                 type="text"
-                value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
-                placeholder="Instagram handle"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
-              />
-              <Input
-                type="text"
-                value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                placeholder="University"
-                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+                placeholder="Enter access code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="text-center text-lg"
+                maxLength={6}
               />
               <Button
-                onClick={handleAccessRequest}
-                disabled={loading}
-                variant="outline"
-                className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
+                className="w-full"
+                onClick={handleSubmit}
+                disabled={loading || !code}
               >
-                Submit Request
+                {loading ? "Checking..." : "Continue"}
               </Button>
             </div>
-          )}
-        </div>
-        <p className="text-gray-500 mt-8 text-sm">made for the cool twenty-somethings</p>
+            <div className="text-center">
+              <Button
+                variant="link"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowRequestForm(true)}
+              >
+                Request Access
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder="Instagram handle"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder="University"
+              value={university}
+              onChange={(e) => setUniversity(e.target.value)}
+            />
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                onClick={handleAccessRequest}
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Submit Request"}
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full text-gray-400 hover:text-white"
+                onClick={() => {
+                  setShowRequestForm(false);
+                  setEmail("");
+                  setInstagram("");
+                  setUniversity("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default Index;
+}
