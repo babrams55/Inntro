@@ -91,14 +91,14 @@ const CrewInvite = () => {
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
         <h1 className="text-2xl font-bold mb-3 text-white">"the duo"</h1>
-        <p className="text-gray-400 mb-8 text-base">
-          {referralCode ? "Complete your signup to join your partner" : "Sign up and we'll send you a code to invite your partner"}
+        <p className="text-gray-400 mb-8 text-base text-center">
+          Sign up with your wing-wo/man! (Your friend will get a code invite via email)
         </p>
         
         <div className="space-y-4">
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
             <SelectTrigger className="w-full bg-black/50 border-white/20 text-white rounded-full">
-              <SelectValue placeholder="Select your gender" />
+              <SelectValue placeholder="Gender" />
             </SelectTrigger>
             <SelectContent className="bg-black/90 border-white/20">
               <SelectItem value="M" className="text-white hover:bg-white/10">Male</SelectItem>
