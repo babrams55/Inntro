@@ -1,25 +1,36 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSearchParams } from "react-router-dom";
+
 const CrewInvite = () => {
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get("code");
+  
   const [phoneNumber, setPhoneNumber] = useState("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [email, setEmail] = useState("");
+
   const handleSignup = () => {
     if (!phoneNumber || !gender || !email) return;
     console.log("Signing up:", {
       phoneNumber,
       gender,
-      email
+      email,
+      referralCode
     });
     // Will implement signup logic and email code sending later
   };
+
   return <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
         <h1 className="text-2xl font-bold mb-3 text-white">"the duo"</h1>
-        <p className="text-gray-400 mb-8 text-base">Sign up first and we'll send you a code to invite your partner</p>
+        <p className="text-gray-400 mb-8 text-base">
+          {referralCode ? "Complete your signup to join your partner" : "Sign up first and we'll send you a code to invite your partner"}
+        </p>
         
         <div className="space-y-4">
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
@@ -42,10 +53,13 @@ const CrewInvite = () => {
           </div>
 
           <p className="text-sm text-gray-500 mt-4">
-            You'll receive a 6-digit code via email to invite your partner
+            {referralCode ? 
+              "You'll be matched with your partner after signup" : 
+              "You'll receive a 6-digit code via email to invite your partner"}
           </p>
         </div>
       </div>
     </div>;
 };
+
 export default CrewInvite;
