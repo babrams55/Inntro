@@ -62,16 +62,21 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Inntro Social <support@inntro.us>",
       to: [email],
-      subject: "Your Inntro Social Access Code",
+      subject: "Your Friend Invited You to Join Their Inntro Social Account",
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
           <h2>Welcome to Inntro Social!</h2>
-          <p>Here's your access code:</p>
+          <p>Your friend has invited you to join their account on Inntro Social. This way, you'll be able to find amazing people together!</p>
+          <p>Here's your personal access code:</p>
           <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; font-size: 24px; letter-spacing: 5px; text-align: center; margin: 20px 0;">
             ${code}
           </div>
-          <p>Use this code to access Inntro Social.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
+          <p>Enter this code when signing up to join your friend's account.</p>
+          <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+          <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            Best regards,<br>
+            The Inntro Social Team
+          </p>
         </div>
       `,
     });

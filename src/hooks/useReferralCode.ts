@@ -15,7 +15,7 @@ export const useReferralCode = () => {
     ).join('');
   };
 
-  const createReferralCode = async (email: string, sendEmail = true) => {
+  const createReferralCode = async (email: string, partnerEmail: string) => {
     const newCode = generateReferralCode();
     
     // Create the referral code in the database
@@ -24,8 +24,9 @@ export const useReferralCode = () => {
       .insert([{
         code: newCode,
         created_by_email: email,
-        email_to: email,
-        email_sent: false
+        email_to: partnerEmail,
+        email_sent: false,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
       }]);
 
     if (referralError) {
@@ -33,33 +34,31 @@ export const useReferralCode = () => {
       throw referralError;
     }
 
-    // Send the email if requested
-    if (sendEmail) {
-      try {
-        const { error } = await supabase.functions.invoke('send-referral', {
-          body: { code: newCode, email }
-        });
+    // Send the email to the friend
+    try {
+      const { error } = await supabase.functions.invoke('send-referral', {
+        body: { code: newCode, email: partnerEmail }
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // Update the referral code to mark email as sent
-        await supabase
-          .from('referral_codes')
-          .update({ email_sent: true })
-          .eq('code', newCode);
+      // Update the referral code to mark email as sent
+      await supabase
+        .from('referral_codes')
+        .update({ email_sent: true })
+        .eq('code', newCode);
 
-        toast({
-          title: "Code sent!",
-          description: "Check your email for the access code.",
-        });
-      } catch (error) {
-        console.error('Error sending email:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to send email. The code was created but couldn't be sent.",
-        });
-      }
+      toast({
+        title: "Invitation sent!",
+        description: "We've sent your friend an email with their personal code.",
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+      });
     }
 
     setGeneratedReferralCode(newCode);
