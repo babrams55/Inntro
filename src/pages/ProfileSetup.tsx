@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Instagram, Upload } from "lucide-react";
+import { Instagram, Upload, CheckCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,8 +58,10 @@ const ProfileSetup = () => {
     }
   };
 
+  const isComplete = photo && bio.trim().length > 0;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
       <div className="w-full max-w-md px-4 py-8">
         <h1 className="text-2xl font-bold mb-3 text-white text-center">Complete Your Profile</h1>
         <p className="text-gray-400 mb-8 text-center">
@@ -118,16 +120,21 @@ const ProfileSetup = () => {
             />
             <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !photo || !bio}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-white"
-          >
-            {loading ? "Saving..." : "Continue"}
-          </Button>
         </div>
       </div>
+
+      <Button
+        onClick={handleSubmit}
+        disabled={loading || !isComplete}
+        size="icon"
+        className={`rounded-full w-16 h-16 transition-all duration-300 ${
+          isComplete 
+            ? 'bg-green-500 hover:bg-green-400 scale-100 opacity-100' 
+            : 'bg-gray-700 scale-90 opacity-50'
+        }`}
+      >
+        <CheckCircle className={`w-8 h-8 ${isComplete ? 'text-white' : 'text-gray-400'}`} />
+      </Button>
     </div>
   );
 };
