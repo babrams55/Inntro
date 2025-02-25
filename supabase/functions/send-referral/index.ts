@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (code === "REQUEST" && requestData) {
       const emailResponse = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
-        to: [email],
+        to: ["support@inntro.us"],
         subject: "New Access Request - Inntro Social",
         html: `
           <div style="font-family: sans-serif; padding: 20px;">
