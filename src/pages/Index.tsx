@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -30,7 +31,7 @@ const Index = () => {
       // Send the email using the edge function
       const { error } = await supabase.functions.invoke('send-referral', {
         body: { 
-          email: "support@inntro.us", // Fixed email address
+          email: "hello@getinntro.com", // Updated email address
           code: "REQUEST",
           requestData: {
             email,

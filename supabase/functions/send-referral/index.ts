@@ -33,8 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (code === "REQUEST" && requestData) {
       console.log("Processing access request for:", requestData.email);
       const emailResponse = await resend.emails.send({
-        from: "Inntro Social <support@inntro.us>",
-        to: ["support@inntro.us"],
+        from: "Inntro Social <hello@getinntro.com>",
+        to: ["hello@getinntro.com"],
         subject: "New Access Request - Inntro Social",
         html: `
           <div style="font-family: sans-serif; padding: 20px;">
@@ -60,7 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Regular referral code email
     console.log("Sending referral code email to:", email);
     const emailResponse = await resend.emails.send({
-      from: "Inntro Social <support@inntro.us>",
+      from: "Inntro Social <hello@getinntro.com>",
       to: [email],
       subject: "Your Inntro Social Access Code",
       html: `
