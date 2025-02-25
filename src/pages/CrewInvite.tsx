@@ -72,9 +72,7 @@ const CrewInvite = () => {
   return <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
         <h1 className="text-2xl font-bold mb-3 text-white">Inntro social</h1>
-        <p className="text-gray-400 mb-8 text-base text-center">
-          Sign up with your friend! (They'll get a code invite via email)
-        </p>
+        <p className="text-gray-400 mb-8 text-base text-center">Sign up w/ your friend! (They'll get a code invite via email)</p>
         
         <div className="space-y-4 mb-8">
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
