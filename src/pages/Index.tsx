@@ -1,11 +1,16 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
+
 const Index = () => {
   const [code, setCode] = useState("");
   return <div className="min-h-screen flex items-center justify-center bg-neutral-950">
       <div className="text-center">
+        <div className="mb-4">
+          <Sparkles className="h-12 w-12 text-pink-400 mx-auto animate-pulse" />
+        </div>
         <h1 className="text-4xl font-bold mb-2 text-blue-300 text-center">Sparkk "Events"</h1>
         
         <div className="space-y-4 w-64 mx-auto">
@@ -21,4 +26,5 @@ const Index = () => {
       </div>
     </div>;
 };
+
 export default Index;
