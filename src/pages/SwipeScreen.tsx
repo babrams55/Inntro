@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Heart, X, Copy, Check, UsersRound } from "lucide-react";
+import { Heart, X, Copy, Check, UsersRound, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -131,7 +132,15 @@ const SwipeScreen = () => {
     <div className="min-h-screen bg-black flex flex-col">
       <div className="p-4 border-b border-white/10 flex justify-between items-center">
         <div className="w-24">
-          {/* Left spacer */}
+          <Button
+            onClick={() => navigate('/chat')}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/10 flex items-center gap-2"
+          >
+            <MessageSquare className="h-5 w-5" />
+            My Duos
+          </Button>
         </div>
         <h1 className="text-white text-2xl font-bold flex items-center gap-2">
           <UsersRound className="h-6 w-6" />
