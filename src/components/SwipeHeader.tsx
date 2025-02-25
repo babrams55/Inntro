@@ -18,7 +18,7 @@ export const SwipeHeader = ({
 
   return (
     <div className="p-4 border-b border-white/10 flex justify-between items-center">
-      <div className="w-24">
+      <div className="w-28">
         <Button
           onClick={() => navigate('/chat')}
           variant="ghost"
@@ -33,7 +33,7 @@ export const SwipeHeader = ({
         <UsersRound className="h-6 w-6" />
         Inntros
       </h1>
-      <div className="w-24 flex justify-end">
+      <div className="w-28">
         <Button
           onClick={generateNewCode}
           variant="outline"
