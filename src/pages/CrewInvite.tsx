@@ -45,7 +45,7 @@ const CrewInvite = () => {
   return <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2 text-blue-500">Invite a Friend</h1>
+          <h1 className="text-4xl font-bold mb-2 text-blue-500">Invite ur sidekick.</h1>
           <p className="text-pink-400">Made for the cool twenty-somethings </p>
         </div>
         
