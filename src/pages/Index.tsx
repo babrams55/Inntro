@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -27,15 +27,24 @@ const Index = () => {
         <h1 className="text-4xl font-bold mb-8 text-white text-center font-['SF Pro Display','sans-serif']">Inntro "double dates"</h1>
         
         <div className="space-y-4 w-64 mx-auto">
-          <Input 
-            type="text" 
-            value={code}
-            placeholder="access code"
-            onChange={e => setCode(e.target.value.toUpperCase())} 
-            maxLength={6} 
-            className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 
-            onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
-          />
+          <div className="flex gap-2 items-center">
+            <Input 
+              type="text" 
+              value={code}
+              placeholder="access code"
+              onChange={e => setCode(e.target.value.toUpperCase())} 
+              maxLength={6} 
+              className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 
+              onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
+            />
+            <Button
+              onClick={handleSubmitCode}
+              disabled={code.length !== 6}
+              className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-400"
+            >
+              <ArrowRight className="h-4 w-4 text-pink-400" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
