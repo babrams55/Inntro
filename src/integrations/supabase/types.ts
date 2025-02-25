@@ -9,6 +9,114 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      friend_pairs: {
+        Row: {
+          bio: string | null
+          city: string
+          created_at: string
+          gender: string
+          id: string
+          status: string | null
+          user1_email: string
+          user2_email: string
+        }
+        Insert: {
+          bio?: string | null
+          city: string
+          created_at?: string
+          gender: string
+          id?: string
+          status?: string | null
+          user1_email: string
+          user2_email: string
+        }
+        Update: {
+          bio?: string | null
+          city?: string
+          created_at?: string
+          gender?: string
+          id?: string
+          status?: string | null
+          user1_email?: string
+          user2_email?: string
+        }
+        Relationships: []
+      }
+      pair_likes: {
+        Row: {
+          created_at: string
+          from_pair_id: string | null
+          id: string
+          to_pair_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_pair_id?: string | null
+          id?: string
+          to_pair_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_pair_id?: string | null
+          id?: string
+          to_pair_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pair_likes_from_pair_id_fkey"
+            columns: ["from_pair_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pair_likes_to_pair_id_fkey"
+            columns: ["to_pair_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pair_matches: {
+        Row: {
+          created_at: string
+          id: string
+          pair1_id: string | null
+          pair2_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pair1_id?: string | null
+          pair2_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pair1_id?: string | null
+          pair2_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pair_matches_pair1_id_fkey"
+            columns: ["pair1_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pair_matches_pair2_id_fkey"
+            columns: ["pair2_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_codes: {
         Row: {
           code: string

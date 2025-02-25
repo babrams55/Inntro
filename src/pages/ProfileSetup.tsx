@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Instagram, Upload, CheckCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -18,6 +19,10 @@ const ProfileSetup = () => {
   const [bio, setBio] = useState("");
   const [instagram1Handle, setInstagram1Handle] = useState("");
   const [instagram2Handle, setInstagram2Handle] = useState("");
+  const [email1, setEmail1] = useState("");
+  const [email2, setEmail2] = useState("");
+  const [city, setCity] = useState<string>("");
+  const [gender, setGender] = useState<"M" | "F" | "">("");
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>, photoNum: number) => {
     if (e.target.files && e.target.files[0]) {
@@ -34,37 +39,52 @@ const ProfileSetup = () => {
 
   const handleInstagramClick = (handle: string) => {
     if (handle) {
-      // Remove @ if present
       const cleanHandle = handle.replace('@', '');
       window.open(`https://instagram.com/${cleanHandle}`, '_blank');
     }
   };
 
   const handleSubmit = async () => {
-    if (!photo1 || !photo2 || !bio) {
+    if (!photo1 || !photo2 || !bio || !email1 || !email2 || !city || !gender) {
       toast({
         variant: "destructive",
         title: "Required fields missing",
-        description: "Please add both photos and a bio before continuing",
+        description: "Please fill in all required fields before continuing",
       });
       return;
     }
     
     setLoading(true);
     try {
-      // Here you'll handle the photo upload and profile data storage
-      // This is a placeholder for now - we'll implement the actual storage later
-      console.log("Submitting profile:", {
-        photo1,
-        photo2,
-        bio,
-        instagram1Handle,
-        instagram2Handle
-      });
+      // Create the friend pair in the database
+      const { data: friendPair, error: friendPairError } = await supabase
+        .from('friend_pairs')
+        .insert({
+          user1_email: email1,
+          user2_email: email2,
+          gender,
+          city,
+          bio,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (friendPairError) {
+        throw friendPairError;
+      }
+
+      // TODO: Handle photo uploads to storage when configured
+      console.log("Created friend pair:", friendPair);
       
+      toast({
+        title: "Profile created!",
+        description: "Your profile has been set up successfully.",
+      });
+
       // Navigate to swipe screen after successful submission
       navigate("/swipe");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({
         variant: "destructive",
@@ -76,20 +96,43 @@ const ProfileSetup = () => {
     }
   };
 
-  const isComplete = photo1 && photo2 && bio.trim().length > 0;
+  const isComplete = photo1 && photo2 && bio.trim().length > 0 && email1 && email2 && city && gender;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
       <div className="w-full max-w-md px-4 py-8">
         <h1 className="text-2xl font-bold mb-3 text-white text-center">Complete Your Profile</h1>
         <p className="text-gray-400 mb-8 text-center">
-          Add photos and some details about you and your friend
+          Set up your profile with your friend
         </p>
 
         <div className="space-y-6">
+          {/* Gender Selection */}
+          <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
+            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white">
+              <SelectValue placeholder="Select your gender" />
+            </SelectTrigger>
+            <SelectContent className="bg-black/90 border-white/20">
+              <SelectItem value="M" className="text-white hover:bg-white/10">Male</SelectItem>
+              <SelectItem value="F" className="text-white hover:bg-white/10">Female</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* City Selection */}
+          <Select value={city} onValueChange={setCity}>
+            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white">
+              <SelectValue placeholder="Select your city" />
+            </SelectTrigger>
+            <SelectContent className="bg-black/90 border-white/20">
+              <SelectItem value="NYC" className="text-white hover:bg-white/10">New York City</SelectItem>
+              <SelectItem value="Chicago" className="text-white hover:bg-white/10">Chicago</SelectItem>
+              <SelectItem value="LA" className="text-white hover:bg-white/10">Los Angeles</SelectItem>
+            </SelectContent>
+          </Select>
+
           <div className="flex flex-col items-center">
             <div className="flex gap-4 mb-4">
-              {/* First Photo Upload */}
+              {/* First Person */}
               <div className="flex flex-col items-center">
                 <div 
                   className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
@@ -124,7 +167,7 @@ const ProfileSetup = () => {
                 </label>
               </div>
 
-              {/* Second Photo Upload */}
+              {/* Second Person */}
               <div className="flex flex-col items-center">
                 <div 
                   className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
@@ -161,6 +204,24 @@ const ProfileSetup = () => {
             </div>
           </div>
 
+          {/* Email inputs */}
+          <div className="space-y-3">
+            <Input
+              type="email"
+              placeholder="Your email"
+              value={email1}
+              onChange={(e) => setEmail1(e.target.value)}
+              className="bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+            />
+            <Input
+              type="email"
+              placeholder="Your friend's email"
+              value={email2}
+              onChange={(e) => setEmail2(e.target.value)}
+              className="bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+            />
+          </div>
+
           <Textarea
             placeholder="Write a short bio about you both..."
             value={bio}
@@ -169,7 +230,7 @@ const ProfileSetup = () => {
           />
 
           <div className="space-y-3">
-            {/* First Instagram Handle */}
+            {/* Instagram Handles */}
             <div className="relative">
               <Input
                 type="text"
@@ -185,7 +246,6 @@ const ProfileSetup = () => {
               />
             </div>
 
-            {/* Second Instagram Handle */}
             <div className="relative">
               <Input
                 type="text"
