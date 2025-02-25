@@ -9,8 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { SwipeHeader } from "@/components/SwipeHeader";
 import { SwipeCard } from "@/components/SwipeCard";
 import { SwipeActions } from "@/components/SwipeActions";
+import { MatchesList } from "@/components/MatchesList";
 import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
 import type { Database } from "@/integrations/supabase/types";
+
+type FriendPair = Database['public']['Tables']['friend_pairs']['Row'];
 
 type Match = {
   id: string;
@@ -18,8 +21,8 @@ type Match = {
   pair1_id: string;
   pair2_id: string;
   status: string;
-  pair1?: Database['public']['Tables']['friend_pairs']['Row'];
-  pair2?: Database['public']['Tables']['friend_pairs']['Row'];
+  pair1?: FriendPair;
+  pair2?: FriendPair;
 };
 
 const SwipeScreen = () => {
@@ -29,6 +32,7 @@ const SwipeScreen = () => {
   const [referralCode, setReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
   const [latestMatch, setLatestMatch] = useState<Match | null>(null);
+  const [showMatches, setShowMatches] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -38,7 +42,6 @@ const SwipeScreen = () => {
 
   const generateNewCode = async () => {
     try {
-      // Implementation of code generation
       const newCode = `CODE${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       setReferralCode(newCode);
       setReferralCopied(false);
@@ -56,11 +59,15 @@ const SwipeScreen = () => {
     const fetchLatestMatch = async () => {
       const { data, error } = await supabase
         .from('pair_matches')
-        .select('*, pair1:pair1_id(*), pair2:pair2_id(*)')
+        .select(`
+          *,
+          pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
+          pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
+        `)
         .or(`pair1_id.eq.${currentPairId},pair2_id.eq.${currentPairId}`)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching latest match:', error);
@@ -93,7 +100,11 @@ const SwipeScreen = () => {
 
         const { data: matchData, error: matchError } = await supabase
           .from('pair_matches')
-          .select('*, pair1:pair1_id(*), pair2:pair2_id(*)')
+          .select(`
+            *,
+            pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
+            pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
+          `)
           .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.other-${swipedPair.id}),and(pair1_id.eq.other-${swipedPair.id},pair2_id.eq.${currentPairId})`)
           .maybeSingle();
 
@@ -103,15 +114,14 @@ const SwipeScreen = () => {
           setLatestMatch(matchData as Match);
           toast({
             title: "It's a match! 🎉",
-            description: `Start chatting with ${swipedPair.names}!`,
+            description: "Start chatting with your new match!",
             action: (
               <Button 
                 onClick={() => navigate('/chat', { 
                   state: { 
                     matchId: matchData.id,
                     currentPairId,
-                    otherPairNames: swipedPair.names,
-                    otherPairId: `other-${swipedPair.id}` // TODO: Replace with actual pair ID
+                    otherPairId: matchData.pair1_id === currentPairId ? matchData.pair2_id : matchData.pair1_id
                   }
                 })}
               >
@@ -155,7 +165,6 @@ const SwipeScreen = () => {
       state: {
         matchId: latestMatch.id,
         currentPairId,
-        otherPairNames: otherPair.names,
         otherPairId: otherPair.id
       }
     });
@@ -169,7 +178,7 @@ const SwipeScreen = () => {
         referralCode={referralCode}
         referralCopied={referralCopied}
         generateNewCode={generateNewCode}
-        onChatClick={navigateToLatestChat}
+        onChatClick={() => setShowMatches(true)}
       />
 
       <div className="flex-1 flex items-center justify-center p-4">
@@ -207,6 +216,15 @@ const SwipeScreen = () => {
       </div>
 
       <SwipeActions onSwipe={handleSwipe} />
+
+      <AnimatePresence>
+        {showMatches && (
+          <MatchesList 
+            currentPairId={currentPairId} 
+            onClose={() => setShowMatches(false)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
