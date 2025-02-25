@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -142,17 +141,13 @@ const CrewInvite = () => {
         </div>
 
         <div className="space-y-2 text-center mt-8">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-white"></div>
-            <p className="text-white">designed for the lost post-grad soul</p>
-          </div>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-white"></div>
-            <p className="text-white">
-              member events starting in May (rooftops, boats, etc)
-              <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Coming Soon</span>
-            </p>
-          </div>
+          <p className="text-white">
+            designed for the lost post-grad soul
+          </p>
+          <p className="text-white">
+            member events starting in May (rooftops, boats, etc)
+            <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Coming Soon</span>
+          </p>
         </div>
 
         {showVerificationInput && (
