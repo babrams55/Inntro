@@ -4,15 +4,50 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  const handleSubmitCode = () => {
-    if (code.length === 6) {
-      console.log("Access code submitted:", code);
-      navigate(`/crew-invite?code=${code}`);
+  const handleSubmitCode = async () => {
+    if (code.length !== 6) return;
+    
+    setLoading(true);
+    try {
+      // Check if this is a partner code
+      const { data: referralData, error: referralError } = await supabase
+        .from('referral_codes')
+        .select('*')
+        .eq('code', code)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (referralError) {
+        // If not a partner code, proceed with normal crew invite flow
+        navigate(`/crew-invite?code=${code}`);
+        return;
+      }
+
+      // If it's a valid partner code, mark it as used and redirect to swipe screen
+      await supabase
+        .from('referral_codes')
+        .update({ used: true })
+        .eq('code', code);
+
+      navigate('/swipe');
+      
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to validate code. Please try again.",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,10 +71,11 @@ const Index = () => {
               maxLength={6} 
               className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 
               onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
+              disabled={loading}
             />
             <Button
               onClick={handleSubmitCode}
-              disabled={code.length !== 6}
+              disabled={code.length !== 6 || loading}
               className="h-10 w-10 p-0 rounded-full bg-blue-500 hover:bg-blue-400"
             >
               <ArrowRight className="h-4 w-4 text-pink-400" />
