@@ -3,12 +3,15 @@ import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+const BYPASS_CODE = '123456'; // Only used in development
+
 export const useVerification = (email: string) => {
   const [loading, setLoading] = useState(false);
   const [showVerificationInput, setShowVerificationInput] = useState(false);
 
   const generateVerificationCode = () => {
-    return Math.random().toString().substr(2, 6);
+    return isDevelopment ? BYPASS_CODE : Math.random().toString().substr(2, 6);
   };
 
   const sendVerification = async () => {
@@ -28,16 +31,26 @@ export const useVerification = (email: string) => {
 
       if (dbError) throw dbError;
 
-      const response = await supabase.functions.invoke('send-verification', {
-        body: { email, code }
-      });
+      if (!isDevelopment) {
+        const response = await supabase.functions.invoke('send-verification', {
+          body: { email, code }
+        });
 
-      if (response.error) throw response.error;
+        if (response.error) throw response.error;
+      } else {
+        // In development, show the code in a toast for testing
+        toast({
+          title: "Development Mode",
+          description: `Use verification code: ${code}`,
+        });
+      }
 
       setShowVerificationInput(true);
       toast({
         title: "Verification code sent!",
-        description: "Please check your email for the verification code.",
+        description: isDevelopment 
+          ? "Development mode: Check the toast above for the code."
+          : "Please check your email for the verification code.",
       });
     } catch (error) {
       console.error('Error sending verification code:', error);
