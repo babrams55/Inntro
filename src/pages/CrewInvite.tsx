@@ -59,7 +59,7 @@ const CrewInvite = () => {
             placeholder="Enter email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="text-center text-lg rounded-2xl bg-pink-400 text-white placeholder:text-white/70"
+            className="text-center text-lg rounded-2xl bg-pink-400 text-gray-900 placeholder:text-gray-700"
           />
           <Button 
             className="w-full" 
