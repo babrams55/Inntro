@@ -29,7 +29,8 @@ const Index = () => {
         <div className="space-y-4 w-64 mx-auto">
           <Input 
             type="text" 
-            value={code} 
+            value={code}
+            placeholder="access code"
             onChange={e => setCode(e.target.value.toUpperCase())} 
             maxLength={6} 
             className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full" 

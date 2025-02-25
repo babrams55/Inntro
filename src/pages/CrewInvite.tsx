@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -23,6 +22,12 @@ const CrewInvite = () => {
   const [generatedReferralCode, setGeneratedReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
   const [showReferralStep, setShowReferralStep] = useState(false);
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const areEmailsValid = isValidEmail(email) && isValidEmail(partnerEmail);
 
   useEffect(() => {
     const validateReferralCode = async () => {
@@ -254,33 +259,39 @@ const CrewInvite = () => {
             </SelectContent>
           </Select>
 
-          <div className="relative">
+          <div className="space-y-4">
             <Input 
               type="email" 
               placeholder="Your email" 
               value={email} 
               onChange={e => setEmail(e.target.value)}
-              className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full pr-12"
+              className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
             />
+
+            <Input 
+              type="email" 
+              placeholder="Your partner's email" 
+              value={partnerEmail} 
+              onChange={e => setPartnerEmail(e.target.value)}
+              className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
+            />
+
             {!showVerificationInput && (
               <Button
-                size="icon"
                 onClick={handleSendVerification}
-                disabled={!email || loading}
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-pink-500 hover:bg-pink-400"
+                disabled={!areEmailsValid || loading}
+                className={`w-full h-12 rounded-full transition-all duration-300 ${
+                  areEmailsValid 
+                    ? 'bg-blue-500 hover:bg-blue-400 shadow-lg shadow-blue-500/50' 
+                    : 'bg-blue-500/30'
+                }`}
               >
-                <ArrowRight className="h-4 w-4 text-white" />
+                <ArrowRight className={`h-6 w-6 transition-transform duration-300 ${
+                  areEmailsValid ? 'scale-125' : 'scale-100'
+                }`} />
               </Button>
             )}
           </div>
-
-          <Input 
-            type="email" 
-            placeholder="Your partner's email" 
-            value={partnerEmail} 
-            onChange={e => setPartnerEmail(e.target.value)}
-            className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
-          />
 
           {showVerificationInput && (
             <div className="space-y-4">
