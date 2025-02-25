@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Heart, X, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Temporary mock data - this would come from your backend
 const mockPairs = [
@@ -30,6 +30,7 @@ const SwipeScreen = () => {
   const [swipedPairs, setSwipedPairs] = useState<{ [key: number]: 'like' | 'pass' }>({});
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSwipe = (direction: 'like' | 'pass') => {
     setSwipedPairs(prev => ({
@@ -44,6 +45,10 @@ const SwipeScreen = () => {
         title: "It's a match! 🎉",
         description: `Start chatting with ${pair.names}!`,
         duration: 5000,
+        action: {
+          label: "Open Chat",
+          onClick: () => navigate('/chat')
+        }
       });
     }
 
