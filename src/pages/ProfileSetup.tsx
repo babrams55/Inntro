@@ -11,25 +11,41 @@ import { supabase } from "@/integrations/supabase/client";
 const ProfileSetup = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [photo1, setPhoto1] = useState<File | null>(null);
+  const [photo2, setPhoto2] = useState<File | null>(null);
+  const [photo1Preview, setPhoto1Preview] = useState<string>("");
+  const [photo2Preview, setPhoto2Preview] = useState<string>("");
   const [bio, setBio] = useState("");
-  const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagram1Handle, setInstagram1Handle] = useState("");
+  const [instagram2Handle, setInstagram2Handle] = useState("");
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>, photoNum: number) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setPhoto(file);
-      setPhotoPreview(URL.createObjectURL(file));
+      if (photoNum === 1) {
+        setPhoto1(file);
+        setPhoto1Preview(URL.createObjectURL(file));
+      } else {
+        setPhoto2(file);
+        setPhoto2Preview(URL.createObjectURL(file));
+      }
+    }
+  };
+
+  const handleInstagramClick = (handle: string) => {
+    if (handle) {
+      // Remove @ if present
+      const cleanHandle = handle.replace('@', '');
+      window.open(`https://instagram.com/${cleanHandle}`, '_blank');
     }
   };
 
   const handleSubmit = async () => {
-    if (!photo || !bio) {
+    if (!photo1 || !photo2 || !bio) {
       toast({
         variant: "destructive",
         title: "Required fields missing",
-        description: "Please add a photo and bio before continuing",
+        description: "Please add both photos and a bio before continuing",
       });
       return;
     }
@@ -39,9 +55,11 @@ const ProfileSetup = () => {
       // Here you'll handle the photo upload and profile data storage
       // This is a placeholder for now - we'll implement the actual storage later
       console.log("Submitting profile:", {
-        photo,
+        photo1,
+        photo2,
         bio,
-        instagramHandle,
+        instagram1Handle,
+        instagram2Handle
       });
       
       // Navigate to swipe screen after successful submission
@@ -58,49 +76,89 @@ const ProfileSetup = () => {
     }
   };
 
-  const isComplete = photo && bio.trim().length > 0;
+  const isComplete = photo1 && photo2 && bio.trim().length > 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
       <div className="w-full max-w-md px-4 py-8">
         <h1 className="text-2xl font-bold mb-3 text-white text-center">Complete Your Profile</h1>
         <p className="text-gray-400 mb-8 text-center">
-          Add a photo and some details about you and your partner
+          Add photos and some details about you and your friend
         </p>
 
         <div className="space-y-6">
           <div className="flex flex-col items-center">
-            <div 
-              className="w-48 h-48 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-4"
-              style={{
-                backgroundImage: photoPreview ? `url(${photoPreview})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
-              {!photoPreview && (
-                <div className="text-center p-4">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <span className="text-sm text-gray-400">Upload a photo of you both</span>
+            <div className="flex gap-4 mb-4">
+              {/* First Photo Upload */}
+              <div className="flex flex-col items-center">
+                <div 
+                  className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
+                  style={{
+                    backgroundImage: photo1Preview ? `url(${photo1Preview})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                >
+                  {!photo1Preview && (
+                    <div className="text-center p-4">
+                      <Upload className="w-6 h-6 mx-auto mb-1 text-gray-400" />
+                      <span className="text-xs text-gray-400">Your photo</span>
+                    </div>
+                  )}
                 </div>
-              )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handlePhotoChange(e, 1)}
+                  className="hidden"
+                  id="photo-upload-1"
+                />
+                <label htmlFor="photo-upload-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-transparent border-white/20 text-white hover:bg-white/10 text-sm"
+                  >
+                    {photo1Preview ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                </label>
+              </div>
+
+              {/* Second Photo Upload */}
+              <div className="flex flex-col items-center">
+                <div 
+                  className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
+                  style={{
+                    backgroundImage: photo2Preview ? `url(${photo2Preview})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                >
+                  {!photo2Preview && (
+                    <div className="text-center p-4">
+                      <Upload className="w-6 h-6 mx-auto mb-1 text-gray-400" />
+                      <span className="text-xs text-gray-400">Friend's photo</span>
+                    </div>
+                  )}
+                </div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handlePhotoChange(e, 2)}
+                  className="hidden"
+                  id="photo-upload-2"
+                />
+                <label htmlFor="photo-upload-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-transparent border-white/20 text-white hover:bg-white/10 text-sm"
+                  >
+                    {photo2Preview ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                </label>
+              </div>
             </div>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="hidden"
-              id="photo-upload"
-            />
-            <label htmlFor="photo-upload">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-transparent border-white/20 text-white hover:bg-white/10"
-              >
-                {photoPreview ? "Change Photo" : "Upload Photo"}
-              </Button>
-            </label>
           </div>
 
           <Textarea
@@ -110,15 +168,38 @@ const ProfileSetup = () => {
             className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 min-h-[100px]"
           />
 
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Instagram handle (optional)"
-              value={instagramHandle}
-              onChange={(e) => setInstagramHandle(e.target.value)}
-              className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 pl-10"
-            />
-            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="space-y-3">
+            {/* First Instagram Handle */}
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Your Instagram handle"
+                value={instagram1Handle}
+                onChange={(e) => setInstagram1Handle(e.target.value)}
+                className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 pl-10"
+                onClick={() => instagram1Handle && handleInstagramClick(instagram1Handle)}
+              />
+              <Instagram 
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer" 
+                onClick={() => instagram1Handle && handleInstagramClick(instagram1Handle)}
+              />
+            </div>
+
+            {/* Second Instagram Handle */}
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Friend's Instagram handle"
+                value={instagram2Handle}
+                onChange={(e) => setInstagram2Handle(e.target.value)}
+                className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 pl-10"
+                onClick={() => instagram2Handle && handleInstagramClick(instagram2Handle)}
+              />
+              <Instagram 
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer" 
+                onClick={() => instagram2Handle && handleInstagramClick(instagram2Handle)}
+              />
+            </div>
           </div>
         </div>
       </div>
