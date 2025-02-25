@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -28,7 +27,7 @@ const Index = () => {
 
     setLoading(true);
     try {
-      // Send the email using the edge function
+      // Send the request email to support
       const { error } = await supabase.functions.invoke('send-referral', {
         body: { 
           email: "support@inntro.us",
@@ -37,7 +36,8 @@ const Index = () => {
             email,
             instagram,
             university
-          }
+          },
+          replyEndpoint: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-access-response`
         }
       });
 

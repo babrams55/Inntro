@@ -10,96 +10,67 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-interface ReferralEmailRequest {
-  code: string;
-  email: string;
-  requestData?: {
-    email: string;
-    instagram: string;
-    university: string;
-  };
-}
-
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { code, email, requestData }: ReferralEmailRequest = await req.json();
-    console.log("Attempting to send email to:", email);
-
-    // If this is an access request
-    if (code === "REQUEST" && requestData) {
-      console.log("Processing access request for:", requestData.email);
-      const emailResponse = await resend.emails.send({
-        from: "Inntro Social <support@inntro.us>",
-        to: ["support@inntro.us"],
-        subject: "New Access Request - Inntro Social",
+    const { email, code, requestData, replyEndpoint } = await req.json();
+    
+    if (code === "REQUEST") {
+      // This is an access request
+      await resend.emails.send({
+        from: "Inntro <support@inntro.us>",
+        to: [email],
+        subject: "New Inntro Access Request",
         html: `
-          <div style="font-family: sans-serif; padding: 20px;">
-            <h2>New Access Request</h2>
-            <p><strong>Email:</strong> ${requestData.email}</p>
-            <p><strong>Instagram:</strong> ${requestData.instagram}</p>
-            <p><strong>University:</strong> ${requestData.university}</p>
+          <h1>New Access Request</h1>
+          <p><strong>Email:</strong> ${requestData.email}</p>
+          <p><strong>Instagram:</strong> ${requestData.instagram}</p>
+          <p><strong>University:</strong> ${requestData.university}</p>
+          <div>
+            <a href="${replyEndpoint}?email=${encodeURIComponent(requestData.email)}&approved=true" 
+               style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; margin-right: 10px;">
+              Approve
+            </a>
+            <a href="${replyEndpoint}?email=${encodeURIComponent(requestData.email)}&approved=false" 
+               style="background: #f44336; color: white; padding: 10px 20px; text-decoration: none;">
+              Reject
+            </a>
           </div>
         `,
       });
-      
-      console.log("Access request email sent successfully:", emailResponse);
-      
-      return new Response(JSON.stringify(emailResponse), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
+    } else {
+      // Regular referral code email
+      await resend.emails.send({
+        from: "Inntro <support@inntro.us>",
+        to: [email],
+        subject: "Your Inntro Invitation",
+        html: `
+          <h1>Welcome to Inntro!</h1>
+          <p>You've been invited to join. Use this code to sign up:</p>
+          <h2 style="font-family: monospace; background: #f4f4f4; padding: 20px; text-align: center;">${code}</h2>
+          <p>This code will expire in 7 days.</p>
+        `,
       });
     }
 
-    // Regular referral code email
-    console.log("Sending referral code email to:", email);
-    const emailResponse = await resend.emails.send({
-      from: "Inntro Social <support@inntro.us>",
-      to: [email],
-      subject: "Your Friend Invited You to Join Their Inntro Social Account",
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Welcome to Inntro Social!</h2>
-          <p>Your friend has invited you to join their account on Inntro Social. This way, you'll be able to find amazing people together!</p>
-          <p>Here's your personal access code:</p>
-          <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; font-size: 24px; letter-spacing: 5px; text-align: center; margin: 20px 0;">
-            ${code}
-          </div>
-          <p>Enter this code when signing up to join your friend's account.</p>
-          <p>If you didn't expect this invitation, you can safely ignore this email.</p>
-          <p style="margin-top: 30px; font-size: 14px; color: #666;">
-            Best regards,<br>
-            The Inntro Social Team
-          </p>
-        </div>
-      `,
-    });
-
-    console.log("Email sent successfully:", emailResponse);
-
-    return new Response(JSON.stringify(emailResponse), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error in send-referral function:", error);
+    return new Response(
+      JSON.stringify({ success: true }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error("Error in send-referral:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   }
-};
-
-serve(handler);
+});
