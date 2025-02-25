@@ -31,6 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // If this is an access request
     if (code === "REQUEST" && requestData) {
+      console.log("Processing access request for:", requestData.email);
       const emailResponse = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
         to: ["support@inntro.us"],
@@ -57,6 +58,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Regular referral code email
+    console.log("Sending referral code email to:", email);
     const emailResponse = await resend.emails.send({
       from: "Inntro Social <support@inntro.us>",
       to: [email],
@@ -84,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending email:", error);
+    console.error("Error in send-referral function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
