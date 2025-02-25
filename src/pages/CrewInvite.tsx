@@ -90,9 +90,9 @@ const CrewInvite = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
-        <h1 className="text-2xl font-bold mb-3 text-white">the duo</h1>
+        <h1 className="text-2xl font-bold mb-3 text-white">Inntro social</h1>
         <p className="text-gray-400 mb-8 text-base text-center">
-          Sign up with your wing-wo/man! (Your friend will get a code invite via email)
+          Sign up with your friend! (They'll get a code invite via email)
         </p>
         
         <div className="space-y-4 mb-8">
@@ -117,7 +117,7 @@ const CrewInvite = () => {
 
             <Input 
               type="email" 
-              placeholder="Your partner's email" 
+              placeholder="Your friend's email" 
               value={partnerEmail} 
               onChange={e => setPartnerEmail(e.target.value)}
               className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
