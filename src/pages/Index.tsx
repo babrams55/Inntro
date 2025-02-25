@@ -112,7 +112,8 @@ const Index = () => {
           <Sparkles className="h-12 w-12 text-pink-400 animate-pulse" />
           <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
         </div>
-        <h1 className="text-4xl font-bold mb-8 text-white text-center font-['SF Pro Display','sans-serif']">Inntro social</h1>
+        <h1 className="text-4xl font-bold mb-2 text-white text-center font-['SF Pro Display','sans-serif']">Inntro social</h1>
+        <p className="text-pink-400 mb-8 text-lg">double dates</p>
         
         <div className="space-y-4 w-64 mx-auto">
           <div className="flex gap-2 items-center">
