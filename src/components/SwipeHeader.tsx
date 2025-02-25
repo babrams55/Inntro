@@ -26,7 +26,7 @@ export const SwipeHeader = ({
           className="text-white hover:bg-white/10 flex items-center gap-2"
         >
           <MessageSquare className="h-5 w-5" />
-          My Duos
+          Our Duos
         </Button>
       </div>
       <h1 className="text-white text-2xl font-bold flex items-center gap-2">
