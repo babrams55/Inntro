@@ -1,39 +1,53 @@
-
 import { useState, useEffect } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Message {
-  id: string;
-  sender_pair_id: string;
-  content: string;
-  created_at: string;
+type ChatMessage = Database['public']['Tables']['chat_messages']['Row'];
+
+interface ChatState {
+  matchId: string;
+  currentPairId: string;
+  otherPairNames: string;
+  otherPairId: string;
 }
 
 const ChatScreen = () => {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
-  // TODO: Replace these with actual values from your auth/state management
-  const currentMatchId = "match-id"; // Get this from your match state/route params
-  const currentPairId = "pair-id"; // Get this from your auth state
-  const otherPairNames = "Mia & Zoe"; // Get this from your match state
+  const { matchId, currentPairId, otherPairNames } = (location.state as ChatState) || {
+    matchId: '',
+    currentPairId: '',
+    otherPairNames: '',
+    otherPairId: ''
+  };
 
   useEffect(() => {
-    // Fetch existing messages
+    if (!matchId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No chat selected. Redirecting to swipe screen..."
+      });
+      navigate('/swipe');
+      return;
+    }
+
     const fetchMessages = async () => {
       try {
         const { data, error } = await supabase
           .from('chat_messages')
           .select('*')
-          .eq('match_id', currentMatchId)
+          .eq('match_id', matchId)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -52,7 +66,6 @@ const ChatScreen = () => {
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel('chat_messages')
       .on(
@@ -61,20 +74,19 @@ const ChatScreen = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: `match_id=eq.${currentMatchId}`
+          filter: `match_id=eq.${matchId}`
         },
         (payload) => {
-          const newMessage = payload.new as Message;
+          const newMessage = payload.new as ChatMessage;
           setMessages(current => [...current, newMessage]);
         }
       )
       .subscribe();
 
-    // Cleanup subscription
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentMatchId, toast]);
+  }, [matchId, currentPairId, toast, navigate]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -83,7 +95,7 @@ const ChatScreen = () => {
       const { error } = await supabase
         .from('chat_messages')
         .insert({
-          match_id: currentMatchId,
+          match_id: matchId,
           sender_pair_id: currentPairId,
           content: message.trim()
         });

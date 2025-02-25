@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          match_id: string | null
+          read: boolean | null
+          sender_pair_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          read?: boolean | null
+          sender_pair_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          read?: boolean | null
+          sender_pair_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "pair_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_pair_id_fkey"
+            columns: ["sender_pair_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friend_pairs: {
         Row: {
           bio: string | null

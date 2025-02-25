@@ -21,6 +21,7 @@ const SwipeScreen = () => {
   const navigate = useNavigate();
 
   const userGender: Gender = "M";
+  const currentPairId = "pair-id"; // TODO: Get this from auth context
   const filteredPairs = getMatchingPairs(userGender);
 
   useEffect(() => {
@@ -93,10 +94,26 @@ const SwipeScreen = () => {
 
     if (direction === 'like' && Math.random() > 0.5) {
       const pair = filteredPairs[currentPairIndex];
+      // Simulate a match with a random match ID
+      const matchId = `match-${Date.now()}`;
+      
       toast({
         title: "It's a match! 🎉",
         description: `Start chatting with ${pair.names}!`,
-        action: <Button onClick={() => navigate('/chat')}>Open Chat</Button>
+        action: (
+          <Button 
+            onClick={() => navigate('/chat', { 
+              state: { 
+                matchId,
+                currentPairId,
+                otherPairNames: pair.names,
+                otherPairId: `other-${pair.id}` // TODO: Replace with actual pair ID
+              }
+            })}
+          >
+            Open Chat
+          </Button>
+        )
       });
     }
 
@@ -122,6 +139,14 @@ const SwipeScreen = () => {
         referralCode={referralCode}
         referralCopied={referralCopied}
         generateNewCode={generateNewCode}
+        onChatClick={() => navigate('/chat', { 
+          state: { 
+            matchId: "latest-match-id", // TODO: Get from matches list
+            currentPairId,
+            otherPairNames: "Latest Match", // TODO: Get from matches list
+            otherPairId: "latest-match-pair-id" // TODO: Get from matches list
+          }
+        })}
       />
 
       <div className="flex-1 flex items-center justify-center p-4">

@@ -7,20 +7,20 @@ interface SwipeHeaderProps {
   referralCode: string;
   referralCopied: boolean;
   generateNewCode: () => void;
+  onChatClick: () => void;
 }
 
 export const SwipeHeader = ({
   referralCode,
   referralCopied,
-  generateNewCode
+  generateNewCode,
+  onChatClick
 }: SwipeHeaderProps) => {
-  const navigate = useNavigate();
-
   return (
     <div className="p-4 border-b border-white/10 flex justify-between items-center">
       <div className="w-28">
         <Button
-          onClick={() => navigate('/chat')}
+          onClick={onChatClick}
           variant="ghost"
           size="sm"
           className="text-white hover:bg-white/10 flex items-center gap-2"
