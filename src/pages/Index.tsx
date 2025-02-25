@@ -31,7 +31,7 @@ const Index = () => {
       // Send the email using the edge function
       const { error } = await supabase.functions.invoke('send-referral', {
         body: { 
-          email: "hello@getinntro.com", // Updated email address
+          email: "support@inntro.us",
           code: "REQUEST",
           requestData: {
             email,
