@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AnimatePresence, PanInfo } from "framer-motion";
 import { motion } from "framer-motion";
@@ -10,6 +9,9 @@ import { SwipeHeader } from "@/components/SwipeHeader";
 import { SwipeCard } from "@/components/SwipeCard";
 import { SwipeActions } from "@/components/SwipeActions";
 import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
+import type { Database } from "@/integrations/supabase/types";
+
+type Match = Database['public']['Tables']['pair_matches']['Row'];
 
 const SwipeScreen = () => {
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -17,6 +19,7 @@ const SwipeScreen = () => {
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [referralCode, setReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
+  const [latestMatch, setLatestMatch] = useState<Match | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -25,96 +28,81 @@ const SwipeScreen = () => {
   const filteredPairs = getMatchingPairs(userGender);
 
   useEffect(() => {
-    const fetchReferralCode = async () => {
+    const fetchLatestMatch = async () => {
       const { data, error } = await supabase
-        .from('referral_codes')
-        .select('code')
+        .from('pair_matches')
+        .select('*, pair1:pair1_id(*), pair2:pair2_id(*)')
+        .or(`pair1_id.eq.${currentPairId},pair2_id.eq.${currentPairId}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (!error && data) {
-        setReferralCode(data.code);
+      if (error) {
+        console.error('Error fetching latest match:', error);
+      } else if (data) {
+        setLatestMatch(data);
       }
     };
 
-    fetchReferralCode();
-  }, []);
+    fetchLatestMatch();
+  }, [currentPairId]);
 
-  const generateNewCode = async () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const code = Array.from(
-      { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)]
-    ).join('');
+  const handleSwipe = async (direction: SwipeDirection) => {
+    const swipedPair = filteredPairs[currentPairIndex];
     
-    try {
-      const { error } = await supabase
-        .from('referral_codes')
-        .insert([{
-          code: code,
-          created_by_email: 'user@example.com',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        }]);
-
-      if (error) throw error;
-
-      setReferralCode(code);
-      await copyReferralCode(code);
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate invite code.",
-      });
-    }
-  };
-
-  const copyReferralCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setReferralCopied(true);
-      toast({
-        title: "Code copied!",
-        description: "Share this code with others to join.",
-      });
-      setTimeout(() => setReferralCopied(false), 2000);
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to copy code.",
-      });
-    }
-  };
-
-  const handleSwipe = (direction: SwipeDirection) => {
     setSwipedPairs(prev => ({
       ...prev,
-      [filteredPairs[currentPairIndex].id]: direction
+      [swipedPair.id]: direction
     }));
 
-    if (direction === 'like' && Math.random() > 0.5) {
-      const pair = filteredPairs[currentPairIndex];
-      // Simulate a match with a random match ID
-      const matchId = `match-${Date.now()}`;
-      
-      toast({
-        title: "It's a match! 🎉",
-        description: `Start chatting with ${pair.names}!`,
-        action: (
-          <Button 
-            onClick={() => navigate('/chat', { 
-              state: { 
-                matchId,
-                currentPairId,
-                otherPairNames: pair.names,
-                otherPairId: `other-${pair.id}` // TODO: Replace with actual pair ID
-              }
-            })}
-          >
-            Open Chat
-          </Button>
-        )
-      });
+    if (direction === 'like') {
+      try {
+        const { error: likeError } = await supabase
+          .from('pair_likes')
+          .insert({
+            from_pair_id: currentPairId,
+            to_pair_id: `other-${swipedPair.id}` // TODO: Replace with actual pair ID
+          });
+
+        if (likeError) throw likeError;
+
+        const { data: matchData, error: matchError } = await supabase
+          .from('pair_matches')
+          .select('*, pair1:pair1_id(*), pair2:pair2_id(*)')
+          .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.other-${swipedPair.id}),and(pair1_id.eq.other-${swipedPair.id},pair2_id.eq.${currentPairId})`)
+          .maybeSingle();
+
+        if (matchError) throw matchError;
+
+        if (matchData) {
+          setLatestMatch(matchData);
+          toast({
+            title: "It's a match! 🎉",
+            description: `Start chatting with ${swipedPair.names}!`,
+            action: (
+              <Button 
+                onClick={() => navigate('/chat', { 
+                  state: { 
+                    matchId: matchData.id,
+                    currentPairId,
+                    otherPairNames: swipedPair.names,
+                    otherPairId: `other-${swipedPair.id}` // TODO: Replace with actual pair ID
+                  }
+                })}
+              >
+                Open Chat
+              </Button>
+            )
+          });
+        }
+      } catch (error) {
+        console.error('Error handling like:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to process your like"
+        });
+      }
     }
 
     if (currentPairIndex < filteredPairs.length - 1) {
@@ -131,6 +119,23 @@ const SwipeScreen = () => {
     }
   };
 
+  const navigateToLatestChat = () => {
+    if (!latestMatch) return;
+
+    const otherPair = latestMatch.pair1_id === currentPairId 
+      ? latestMatch.pair2
+      : latestMatch.pair1;
+
+    navigate('/chat', {
+      state: {
+        matchId: latestMatch.id,
+        currentPairId,
+        otherPairNames: otherPair.names,
+        otherPairId: otherPair.id
+      }
+    });
+  };
+
   const currentPair = filteredPairs[currentPairIndex];
 
   return (
@@ -139,14 +144,7 @@ const SwipeScreen = () => {
         referralCode={referralCode}
         referralCopied={referralCopied}
         generateNewCode={generateNewCode}
-        onChatClick={() => navigate('/chat', { 
-          state: { 
-            matchId: "latest-match-id", // TODO: Get from matches list
-            currentPairId,
-            otherPairNames: "Latest Match", // TODO: Get from matches list
-            otherPairId: "latest-match-pair-id" // TODO: Get from matches list
-          }
-        })}
+        onChatClick={navigateToLatestChat}
       />
 
       <div className="flex-1 flex items-center justify-center p-4">
