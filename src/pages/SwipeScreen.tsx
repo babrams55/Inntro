@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AnimatePresence, PanInfo } from "framer-motion";
 import { motion } from "framer-motion";
@@ -9,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SwipeHeader } from "@/components/SwipeHeader";
 import { SwipeCard } from "@/components/SwipeCard";
 import { SwipeActions } from "@/components/SwipeActions";
-import { SWIPE_THRESHOLD, mockPairs, SwipeDirection } from "@/utils/swipeUtils";
+import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
 
 const SwipeScreen = () => {
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -19,6 +18,9 @@ const SwipeScreen = () => {
   const [referralCopied, setReferralCopied] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const userGender: Gender = "M";
+  const filteredPairs = getMatchingPairs(userGender);
 
   useEffect(() => {
     const fetchReferralCode = async () => {
@@ -85,11 +87,11 @@ const SwipeScreen = () => {
   const handleSwipe = (direction: SwipeDirection) => {
     setSwipedPairs(prev => ({
       ...prev,
-      [mockPairs[currentPairIndex].id]: direction
+      [filteredPairs[currentPairIndex].id]: direction
     }));
 
     if (direction === 'like' && Math.random() > 0.5) {
-      const pair = mockPairs[currentPairIndex];
+      const pair = filteredPairs[currentPairIndex];
       toast({
         title: "It's a match! 🎉",
         description: `Start chatting with ${pair.names}!`,
@@ -97,7 +99,7 @@ const SwipeScreen = () => {
       });
     }
 
-    if (currentPairIndex < mockPairs.length - 1) {
+    if (currentPairIndex < filteredPairs.length - 1) {
       setCurrentPairIndex(prev => prev + 1);
       setDragPosition({ x: 0, y: 0 });
     }
@@ -111,7 +113,7 @@ const SwipeScreen = () => {
     }
   };
 
-  const currentPair = mockPairs[currentPairIndex];
+  const currentPair = filteredPairs[currentPairIndex];
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
