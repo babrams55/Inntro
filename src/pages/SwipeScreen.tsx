@@ -1,13 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Heart, X, MessageCircle, Copy, Check } from "lucide-react";
+import { Heart, X, Copy, Check, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Temporary mock data - this would come from your backend
 const mockPairs = [
   {
     id: 1,
@@ -25,7 +23,7 @@ const mockPairs = [
   }
 ];
 
-const SWIPE_THRESHOLD = 100; // minimum distance for a swipe
+const SWIPE_THRESHOLD = 100;
 
 const SwipeScreen = () => {
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -51,11 +49,38 @@ const SwipeScreen = () => {
     fetchReferralCode();
   }, []);
 
-  const copyReferralCode = async () => {
-    if (!referralCode) return;
+  const generateNewCode = async () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const code = Array.from(
+      { length: 6 },
+      () => chars[Math.floor(Math.random() * chars.length)]
+    ).join('');
     
     try {
-      await navigator.clipboard.writeText(referralCode);
+      const { error } = await supabase
+        .from('referral_codes')
+        .insert([{
+          code: code,
+          created_by_email: 'user@example.com',
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        }]);
+
+      if (error) throw error;
+
+      setReferralCode(code);
+      await copyReferralCode(code);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate invite code.",
+      });
+    }
+  };
+
+  const copyReferralCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
       setReferralCopied(true);
       toast({
         title: "Code copied!",
@@ -77,7 +102,6 @@ const SwipeScreen = () => {
       [mockPairs[currentPairIndex].id]: direction
     }));
 
-    // Simulate a match 50% of the time when liking
     if (direction === 'like' && Math.random() > 0.5) {
       const pair = mockPairs[currentPairIndex];
       toast({
@@ -87,7 +111,6 @@ const SwipeScreen = () => {
       });
     }
 
-    // Move to next pair
     if (currentPairIndex < mockPairs.length - 1) {
       setCurrentPairIndex(prev => prev + 1);
       setDragPosition({ x: 0, y: 0 });
@@ -98,7 +121,7 @@ const SwipeScreen = () => {
     if (Math.abs(info.offset.x) > SWIPE_THRESHOLD) {
       handleSwipe(info.offset.x > 0 ? 'like' : 'pass');
     } else {
-      setDragPosition({ x: 0, y: 0 }); // Reset position if not swiped far enough
+      setDragPosition({ x: 0, y: 0 });
     }
   };
 
@@ -106,27 +129,37 @@ const SwipeScreen = () => {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      {/* Top Navigation */}
       <div className="p-4 border-b border-white/10 flex justify-between items-center">
-        <h1 className="text-white text-xl font-bold">Find Your Double Date</h1>
-        {referralCode && (
+        <div className="w-24">
+          {/* Left spacer */}
+        </div>
+        <h1 className="text-white text-2xl font-bold flex items-center gap-2">
+          <UsersRound className="h-6 w-6" />
+          Inntros
+        </h1>
+        <div className="w-24 flex justify-end">
           <Button
+            onClick={generateNewCode}
             variant="outline"
             size="sm"
-            onClick={copyReferralCode}
-            className="flex items-center gap-2 bg-black/50 border-white/20 text-white rounded-full"
+            className="bg-blue-500 hover:bg-blue-400 text-white border-none rounded-full flex items-center gap-2"
           >
-            {referralCode}
-            {referralCopied ? (
-              <Check className="h-4 w-4 text-green-500" />
+            {referralCode ? (
+              <>
+                {referralCode}
+                {referralCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </>
             ) : (
-              <Copy className="h-4 w-4" />
+              'Invite'
             )}
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* Swipe Area */}
       <div className="flex-1 flex items-center justify-center p-4">
         <AnimatePresence mode="wait">
           {currentPair && (
@@ -164,7 +197,6 @@ const SwipeScreen = () => {
                   <p className="text-gray-400 mt-2">{currentPair.bio}</p>
                 </div>
 
-                {/* Swipe Indicators */}
                 <motion.div
                   className="absolute top-6 right-6 bg-green-500 text-white px-4 py-2 rounded-full font-bold"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -191,7 +223,6 @@ const SwipeScreen = () => {
         </AnimatePresence>
       </div>
 
-      {/* Action Buttons */}
       <div className="p-6 flex justify-center gap-4">
         <Button
           size="lg"
