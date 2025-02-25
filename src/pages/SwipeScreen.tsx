@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { AnimatePresence, PanInfo } from "framer-motion";
 import { motion } from "framer-motion";
@@ -11,7 +12,15 @@ import { SwipeActions } from "@/components/SwipeActions";
 import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
 import type { Database } from "@/integrations/supabase/types";
 
-type Match = Database['public']['Tables']['pair_matches']['Row'];
+type Match = {
+  id: string;
+  created_at: string;
+  pair1_id: string;
+  pair2_id: string;
+  status: string;
+  pair1?: Database['public']['Tables']['friend_pairs']['Row'];
+  pair2?: Database['public']['Tables']['friend_pairs']['Row'];
+};
 
 const SwipeScreen = () => {
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -27,6 +36,22 @@ const SwipeScreen = () => {
   const currentPairId = "pair-id"; // TODO: Get this from auth context
   const filteredPairs = getMatchingPairs(userGender);
 
+  const generateNewCode = async () => {
+    try {
+      // Implementation of code generation
+      const newCode = `CODE${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      setReferralCode(newCode);
+      setReferralCopied(false);
+    } catch (error) {
+      console.error('Error generating code:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate referral code"
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchLatestMatch = async () => {
       const { data, error } = await supabase
@@ -40,7 +65,7 @@ const SwipeScreen = () => {
       if (error) {
         console.error('Error fetching latest match:', error);
       } else if (data) {
-        setLatestMatch(data);
+        setLatestMatch(data as Match);
       }
     };
 
@@ -75,7 +100,7 @@ const SwipeScreen = () => {
         if (matchError) throw matchError;
 
         if (matchData) {
-          setLatestMatch(matchData);
+          setLatestMatch(matchData as Match);
           toast({
             title: "It's a match! 🎉",
             description: `Start chatting with ${swipedPair.names}!`,
@@ -120,7 +145,7 @@ const SwipeScreen = () => {
   };
 
   const navigateToLatestChat = () => {
-    if (!latestMatch) return;
+    if (!latestMatch || !latestMatch.pair1 || !latestMatch.pair2) return;
 
     const otherPair = latestMatch.pair1_id === currentPairId 
       ? latestMatch.pair2
