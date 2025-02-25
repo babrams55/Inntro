@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface EmailRequest {
+interface VerificationRequest {
   email: string;
   code: string;
 }
@@ -21,7 +21,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, code }: EmailRequest = await req.json();
+    const { email, code }: VerificationRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
       from: "Intro <onboarding@resend.dev>",
@@ -29,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject: "Your Verification Code",
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Welcome to Intro!</h2>
+          <h2>Welcome to "the duo"!</h2>
           <p>Here's your verification code to complete your signup:</p>
           <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; font-size: 24px; letter-spacing: 5px; text-align: center; margin: 20px 0;">
             ${code}
