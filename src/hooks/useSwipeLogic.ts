@@ -34,23 +34,21 @@ export const useSwipeLogic = (currentPairId: string) => {
 
     if (direction === 'like') {
       try {
+        const toPairId = `other-${swipedPair.id}`;
+
         const { error: likeError } = await supabase
           .from('pair_likes')
           .insert({
             from_pair_id: currentPairId,
-            to_pair_id: `other-${swipedPair.id}`
+            to_pair_id: toPairId
           });
 
         if (likeError) throw likeError;
 
         const { data: matchData, error: matchError } = await supabase
           .from('pair_matches')
-          .select(`
-            *,
-            pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
-            pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
-          `)
-          .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.other-${swipedPair.id}),and(pair1_id.eq.other-${swipedPair.id},pair2_id.eq.${currentPairId})`)
+          .select('*, pair1:friend_pairs(*), pair2:friend_pairs(*)')
+          .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.${toPairId}),and(pair1_id.eq.${toPairId},pair2_id.eq.${currentPairId})`)
           .maybeSingle();
 
         if (matchError) throw matchError;
@@ -93,7 +91,6 @@ export const useSwipeLogic = (currentPairId: string) => {
 
   return {
     currentPairIndex,
-    swipedPairs,
     dragPosition,
     setDragPosition,
     latestMatch,
