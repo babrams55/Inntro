@@ -13,6 +13,11 @@ const corsHeaders = {
 interface ReferralEmailRequest {
   code: string;
   email: string;
+  requestData?: {
+    email: string;
+    instagram: string;
+    university: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -21,9 +26,37 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { code, email }: ReferralEmailRequest = await req.json();
-    console.log("Attempting to send email to:", email, "with code:", code);
+    const { code, email, requestData }: ReferralEmailRequest = await req.json();
+    console.log("Attempting to send email to:", email);
 
+    // If this is an access request
+    if (code === "REQUEST" && requestData) {
+      const emailResponse = await resend.emails.send({
+        from: "Inntro Social <support@inntro.us>",
+        to: [email],
+        subject: "New Access Request - Inntro Social",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>New Access Request</h2>
+            <p><strong>Email:</strong> ${requestData.email}</p>
+            <p><strong>Instagram:</strong> ${requestData.instagram}</p>
+            <p><strong>University:</strong> ${requestData.university}</p>
+          </div>
+        `,
+      });
+      
+      console.log("Access request email sent successfully:", emailResponse);
+      
+      return new Response(JSON.stringify(emailResponse), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // Regular referral code email
     const emailResponse = await resend.emails.send({
       from: "Inntro Social <support@inntro.us>",
       to: [email],
@@ -51,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending referral email:", error);
+    console.error("Error sending email:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

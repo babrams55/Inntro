@@ -10,56 +10,53 @@ import { toast } from "@/components/ui/use-toast";
 const Index = () => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [university, setUniversity] = useState("");
   const navigate = useNavigate();
   
-  // Add this function to create a test referral code
-  const createTestReferral = async () => {
+  const handleAccessRequest = async () => {
+    if (!email || !instagram || !university) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all fields",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const testEmail = "abramsecom@gmail.com";
-      
-      // Generate a random 6-character code
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      const newCode = Array.from(
-        { length: 6 },
-        () => chars[Math.floor(Math.random() * chars.length)]
-      ).join('');
-      
-      // Create the referral code in the database
-      const { error: referralError } = await supabase
-        .from('referral_codes')
-        .insert([{
-          code: newCode,
-          created_by_email: testEmail,
-          email_to: testEmail,
-          email_sent: false
-        }]);
-
-      if (referralError) throw referralError;
-
-      // Send the email
+      // Send the email using the edge function
       const { error } = await supabase.functions.invoke('send-referral', {
-        body: { code: newCode, email: testEmail }
+        body: { 
+          email: "support@inner.us",
+          code: "REQUEST",
+          requestData: {
+            email,
+            instagram,
+            university
+          }
+        }
       });
 
       if (error) throw error;
 
-      // Update the referral code to mark email as sent
-      await supabase
-        .from('referral_codes')
-        .update({ email_sent: true })
-        .eq('code', newCode);
-
       toast({
-        title: "Test email sent!",
-        description: "Check your email for the access code.",
+        title: "Request sent!",
+        description: "We'll review your request and get back to you soon.",
       });
+      setShowForm(false);
+      setEmail("");
+      setInstagram("");
+      setUniversity("");
     } catch (error: any) {
-      console.error('Error sending test email:', error);
+      console.error('Error sending request:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send test email. Please try again.",
+        description: "Failed to send request. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -138,16 +135,50 @@ const Index = () => {
             </Button>
           </div>
           
-          {/* Add test button */}
-          <Button
-            onClick={createTestReferral}
-            disabled={loading}
-            variant="outline"
-            className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
-          >
-            Send Test Email
-          </Button>
+          {!showForm ? (
+            <Button
+              onClick={() => setShowForm(true)}
+              disabled={loading}
+              variant="outline"
+              className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
+            >
+              Request Access
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+              />
+              <Input
+                type="text"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="Instagram handle"
+                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+              />
+              <Input
+                type="text"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                placeholder="University"
+                className="w-full bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+              />
+              <Button
+                onClick={handleAccessRequest}
+                disabled={loading}
+                variant="outline"
+                className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
+              >
+                Submit Request
+              </Button>
+            </div>
+          )}
         </div>
+        <p className="text-gray-500 mt-8 text-sm">made for the cool twenty-somethings</p>
       </div>
     </div>
   );
