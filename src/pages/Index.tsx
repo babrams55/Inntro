@@ -11,7 +11,7 @@ const Index = () => {
   
   const handleSubmitCode = () => {
     if (code.length === 6) {
-      console.log("Referral code submitted:", code);
+      console.log("Access code submitted:", code);
       navigate(`/crew-invite?code=${code}`);
     }
   };
@@ -30,7 +30,7 @@ const Index = () => {
           <div className="relative">
             <Input 
               type="text" 
-              placeholder="Enter six-digit code" 
+              placeholder="Enter access code" 
               value={code} 
               onChange={e => setCode(e.target.value.toUpperCase())} 
               maxLength={6} 

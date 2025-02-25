@@ -1,9 +1,11 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { Heart, X, MessageCircle } from "lucide-react";
+import { Heart, X, MessageCircle, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 // Temporary mock data - this would come from your backend
 const mockPairs = [
@@ -29,8 +31,45 @@ const SwipeScreen = () => {
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
   const [swipedPairs, setSwipedPairs] = useState<{ [key: number]: 'like' | 'pass' }>({});
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [referralCode, setReferralCode] = useState("");
+  const [referralCopied, setReferralCopied] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchReferralCode = async () => {
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .select('code')
+        .single();
+
+      if (!error && data) {
+        setReferralCode(data.code);
+      }
+    };
+
+    fetchReferralCode();
+  }, []);
+
+  const copyReferralCode = async () => {
+    if (!referralCode) return;
+    
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setReferralCopied(true);
+      toast({
+        title: "Code copied!",
+        description: "Share this code with others to join.",
+      });
+      setTimeout(() => setReferralCopied(false), 2000);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to copy code.",
+      });
+    }
+  };
 
   const handleSwipe = (direction: 'like' | 'pass') => {
     setSwipedPairs(prev => ({
@@ -44,11 +83,7 @@ const SwipeScreen = () => {
       toast({
         title: "It's a match! 🎉",
         description: `Start chatting with ${pair.names}!`,
-        duration: 5000,
-        action: {
-          label: "Open Chat",
-          onClick: () => navigate('/chat')
-        }
+        action: <Button onClick={() => navigate('/chat')}>Open Chat</Button>
       });
     }
 
@@ -72,8 +107,23 @@ const SwipeScreen = () => {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Top Navigation */}
-      <div className="p-4 border-b border-white/10">
-        <h1 className="text-white text-xl font-bold text-center">Find Your Double Date</h1>
+      <div className="p-4 border-b border-white/10 flex justify-between items-center">
+        <h1 className="text-white text-xl font-bold">Find Your Double Date</h1>
+        {referralCode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyReferralCode}
+            className="flex items-center gap-2 bg-black/50 border-white/20 text-white rounded-full"
+          >
+            {referralCode}
+            {referralCopied ? (
+              <Check className="h-4 w-4 text-green-500" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Swipe Area */}

@@ -16,6 +16,7 @@ const CrewInvite = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [email, setEmail] = useState("");
+  const [partnerEmail, setPartnerEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,6 @@ const CrewInvite = () => {
   useEffect(() => {
     const validateReferralCode = async () => {
       if (referralCode) {
-        // Use generic types for the query
         const { data, error } = await supabase
           .from('referral_codes')
           .select()
@@ -273,6 +273,14 @@ const CrewInvite = () => {
               </Button>
             )}
           </div>
+
+          <Input 
+            type="email" 
+            placeholder="Your partner's email" 
+            value={partnerEmail} 
+            onChange={e => setPartnerEmail(e.target.value)}
+            className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
+          />
 
           {showVerificationInput && (
             <div className="space-y-4">
