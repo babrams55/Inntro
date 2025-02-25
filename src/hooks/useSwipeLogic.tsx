@@ -8,14 +8,9 @@ import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 
 type FriendPair = Database['public']['Tables']['friend_pairs']['Row'];
-type Match = {
-  id: string;
-  created_at: string;
-  pair1_id: string;
-  pair2_id: string;
-  status: string;
-  pair1?: FriendPair;
-  pair2?: FriendPair;
+type Match = Database['public']['Tables']['pair_matches']['Row'] & {
+  pair1?: FriendPair | null;
+  pair2?: FriendPair | null;
 };
 
 export const useSwipeLogic = (currentPairId: string) => {
@@ -45,10 +40,15 @@ export const useSwipeLogic = (currentPairId: string) => {
 
         if (likeError) throw likeError;
 
+        // Query matches with explicit join paths
         const { data: matchData, error: matchError } = await supabase
           .from('pair_matches')
-          .select('*, pair1:friend_pairs(*), pair2:friend_pairs(*)')
-          .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.${toPairId}),and(pair1_id.eq.${toPairId},pair2_id.eq.${currentPairId})`)
+          .select(`
+            *,
+            pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
+            pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
+          `)
+          .or(`pair1_id.eq.${currentPairId},pair2_id.eq.${currentPairId}`)
           .maybeSingle();
 
         if (matchError) throw matchError;
