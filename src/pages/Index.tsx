@@ -30,9 +30,9 @@ const Index = () => {
           <div className="relative">
             <Input 
               type="text" 
-              placeholder="Enter referral code" 
+              placeholder="Enter six-digit code" 
               value={code} 
-              onChange={e => setCode(e.target.value)} 
+              onChange={e => setCode(e.target.value.toUpperCase())} 
               maxLength={6} 
               className="text-center text-xl tracking-wider font-mono bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full pr-12" 
               onKeyDown={e => e.key === 'Enter' && handleSubmitCode()} 
@@ -47,9 +47,6 @@ const Index = () => {
             </Button>
           </div>
         </div>
-
-        <p className="text-sm text-gray-500 mt-6">
-        </p>
       </div>
     </div>
   );
