@@ -63,6 +63,7 @@ const ProfileSetup = () => {
           user2_email: email2,
           gender,
           bio,
+          city: "pending", // Temporary value until user sets it in the next step
           status: 'active'
         })
         .select()
