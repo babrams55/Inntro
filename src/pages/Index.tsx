@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -116,7 +115,7 @@ const Index = () => {
           <Sparkles className="h-8 w-8 text-pink-400 animate-pulse" />
         </div>
         <h1 className="text-4xl font-bold mb-2 text-blue-500 text-center font-['SF Pro Display','sans-serif']">Inntro social</h1>
-        <p className="text-pink-400 mb-8 text-lg">double dates</p>
+        <p className="text-pink-400 mb-8 text-lg">"double dates"</p>
         
         <div className="space-y-4 w-64 mx-auto">
           <div className="flex gap-2 items-center">
