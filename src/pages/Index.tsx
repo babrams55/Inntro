@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+
 export default function Index() {
   const [code, setCode] = useState("");
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -12,6 +13,7 @@ export default function Index() {
   const [university, setUniversity] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const handleAccessRequest = async () => {
     if (!email || !instagram || !university) {
       toast({
@@ -53,6 +55,7 @@ export default function Index() {
       setLoading(false);
     }
   };
+
   const handleSubmit = async () => {
     if (!code) {
       toast({
@@ -90,6 +93,7 @@ export default function Index() {
       setLoading(false);
     }
   };
+
   return <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
@@ -99,7 +103,7 @@ export default function Index() {
 
         {!showRequestForm ? <div className="space-y-4">
             <div className="space-y-2">
-              <Input type="text" placeholder="Enter access code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={6} className="text-center text-lg rounded-2xl bg-blue-500" />
+              <Input type="text" placeholder="Enter access code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={6} className="text-center text-lg rounded-2xl bg-pink-400 text-white placeholder:text-white/70" />
               <Button className="w-full" onClick={handleSubmit} disabled={loading || !code}>
                 {loading ? "Checking..." : "Continue"}
               </Button>

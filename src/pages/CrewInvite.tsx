@@ -48,22 +48,29 @@ const CrewInvite = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-md p-6">
-      <h1 className="text-2xl font-bold mb-6">Invite a Friend</h1>
-      <div className="space-y-4">
-        <Input
-          type="email"
-          placeholder="Enter email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Button 
-          className="w-full" 
-          onClick={handleInvite}
-          disabled={loading}
-        >
-          {loading ? "Sending..." : "Send Invite"}
-        </Button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2 text-blue-500">Invite a Friend</h1>
+          <p className="text-pink-400">Share Inntro with your crew</p>
+        </div>
+        
+        <div className="space-y-4">
+          <Input
+            type="email"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="text-center text-lg rounded-2xl bg-pink-400 text-white placeholder:text-white/70"
+          />
+          <Button 
+            className="w-full" 
+            onClick={handleInvite}
+            disabled={loading}
+          >
+            {loading ? "Sending..." : "Send Invite"}
+          </Button>
+        </div>
       </div>
     </div>
   );
