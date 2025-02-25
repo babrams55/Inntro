@@ -90,9 +90,9 @@ const CrewInvite = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-4">
-        <h1 className="text-2xl font-bold mb-3 text-white">Join Your Social Group</h1>
+        <h1 className="text-2xl font-bold mb-3 text-white">the duo</h1>
         <p className="text-gray-400 mb-8 text-base text-center">
-          Connect with friends and join exclusive events! Invite your friend to get started.
+          Sign up with your wing-wo/man! (Your friend will get a code invite via email)
         </p>
         
         <div className="space-y-4 mb-8">
@@ -117,7 +117,7 @@ const CrewInvite = () => {
 
             <Input 
               type="email" 
-              placeholder="Your friend's email" 
+              placeholder="Your partner's email" 
               value={partnerEmail} 
               onChange={e => setPartnerEmail(e.target.value)}
               className="text-center bg-black/50 border-white/20 text-white placeholder:text-gray-500 rounded-full"
@@ -143,10 +143,10 @@ const CrewInvite = () => {
 
         <div className="space-y-2 text-center mt-8">
           <p className="text-white">
-            Join exclusive local events and activities
+            designed for the lost post-grad soul
           </p>
           <p className="text-white">
-            Monthly member events
+            member events starting in May (rooftops, boats, etc)
             <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Coming Soon</span>
           </p>
         </div>
