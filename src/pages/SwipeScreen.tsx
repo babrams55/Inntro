@@ -1,20 +1,21 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PanInfo } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { SwipeHeader } from "@/components/SwipeHeader";
 import { SwipeCardContainer } from "@/components/SwipeCardContainer";
 import { SwipeActions } from "@/components/SwipeActions";
 import { MatchesList } from "@/components/MatchesList";
 import { useSwipeLogic } from "@/hooks/useSwipeLogic";
 import { SWIPE_THRESHOLD, getMatchingPairs, Gender } from "@/utils/swipeUtils";
+import { useToast } from "@/components/ui/use-toast";
 
 const SwipeScreen = () => {
   const [referralCode, setReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
   const [showMatches, setShowMatches] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const userGender: Gender = "M";
   const currentPairId = "pair-id"; // TODO: Get this from auth context
@@ -35,6 +36,11 @@ const SwipeScreen = () => {
       setReferralCopied(false);
     } catch (error) {
       console.error('Error generating code:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate referral code"
+      });
     }
   };
 
@@ -48,22 +54,6 @@ const SwipeScreen = () => {
     } else {
       setDragPosition({ x: 0, y: 0 });
     }
-  };
-
-  const navigateToLatestChat = () => {
-    if (!latestMatch || !latestMatch.pair1 || !latestMatch.pair2) return;
-
-    const otherPair = latestMatch.pair1_id === currentPairId 
-      ? latestMatch.pair2
-      : latestMatch.pair1;
-
-    navigate('/chat', {
-      state: {
-        matchId: latestMatch.id,
-        currentPairId,
-        otherPairId: otherPair.id
-      }
-    });
   };
 
   const currentPair = filteredPairs[currentPairIndex];
