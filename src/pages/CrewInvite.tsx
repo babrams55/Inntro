@@ -97,7 +97,7 @@ const CrewInvite = () => {
         
         <div className="space-y-4">
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
-            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white rounded-full">
+            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white rounded-full text-center flex justify-center">
               <SelectValue placeholder="Gender" />
             </SelectTrigger>
             <SelectContent className="bg-black/90 border-white/20">
