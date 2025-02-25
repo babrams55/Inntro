@@ -12,6 +12,60 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
+  // Add this function to create a test referral code
+  const createTestReferral = async () => {
+    setLoading(true);
+    try {
+      const testEmail = "abramsecom@gmail.com";
+      
+      // Generate a random 6-character code
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const newCode = Array.from(
+        { length: 6 },
+        () => chars[Math.floor(Math.random() * chars.length)]
+      ).join('');
+      
+      // Create the referral code in the database
+      const { error: referralError } = await supabase
+        .from('referral_codes')
+        .insert([{
+          code: newCode,
+          created_by_email: testEmail,
+          email_to: testEmail,
+          email_sent: false
+        }]);
+
+      if (referralError) throw referralError;
+
+      // Send the email
+      const { error } = await supabase.functions.invoke('send-referral', {
+        body: { code: newCode, email: testEmail }
+      });
+
+      if (error) throw error;
+
+      // Update the referral code to mark email as sent
+      await supabase
+        .from('referral_codes')
+        .update({ email_sent: true })
+        .eq('code', newCode);
+
+      toast({
+        title: "Test email sent!",
+        description: "Check your email for the access code.",
+      });
+    } catch (error: any) {
+      console.error('Error sending test email:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send test email. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmitCode = async () => {
     if (code.length !== 6) return;
     
@@ -83,6 +137,16 @@ const Index = () => {
               <ArrowRight className="h-4 w-4 text-pink-400" />
             </Button>
           </div>
+          
+          {/* Add test button */}
+          <Button
+            onClick={createTestReferral}
+            disabled={loading}
+            variant="outline"
+            className="w-full text-white bg-transparent border-white/20 hover:bg-white/10"
+          >
+            Send Test Email
+          </Button>
         </div>
       </div>
     </div>

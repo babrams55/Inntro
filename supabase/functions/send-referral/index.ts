@@ -22,6 +22,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { code, email }: ReferralEmailRequest = await req.json();
+    console.log("Attempting to send email to:", email, "with code:", code);
 
     const emailResponse = await resend.emails.send({
       from: "Inntro Social <support@inntro.us>",
