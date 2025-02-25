@@ -3,6 +3,7 @@ export const SWIPE_THRESHOLD = 100;
 
 export type SwipeDirection = 'like' | 'pass';
 export type Gender = 'M' | 'F';
+export type City = 'NYC' | 'Chicago' | 'LA';
 
 export interface Pair {
   id: number;
@@ -11,6 +12,7 @@ export interface Pair {
   bio: string;
   image: string;
   gender: Gender;
+  city: City;
 }
 
 export const mockPairs: Pair[] = [
@@ -20,7 +22,8 @@ export const mockPairs: Pair[] = [
     ages: "25 & 27",
     bio: "Love pizza and dive bars",
     image: "/placeholder.svg",
-    gender: "F"
+    gender: "F",
+    city: "NYC"
   },
   {
     id: 2,
@@ -28,7 +31,8 @@ export const mockPairs: Pair[] = [
     ages: "26 & 24",
     bio: "Hiking enthusiasts and coffee addicts",
     image: "/placeholder.svg",
-    gender: "F"
+    gender: "F",
+    city: "Chicago"
   },
   {
     id: 3,
@@ -36,7 +40,8 @@ export const mockPairs: Pair[] = [
     ages: "28 & 29",
     bio: "Sports fanatics and BBQ masters",
     image: "/placeholder.svg",
-    gender: "M"
+    gender: "M",
+    city: "LA"
   },
   {
     id: 4,
@@ -44,10 +49,14 @@ export const mockPairs: Pair[] = [
     ages: "27 & 26",
     bio: "Music lovers and craft beer enthusiasts",
     image: "/placeholder.svg",
-    gender: "M"
+    gender: "M",
+    city: "NYC"
   }
 ];
 
 export const getMatchingPairs = (userGender: Gender): Pair[] => {
-  return mockPairs.filter(pair => pair.gender !== userGender);
+  const selectedCity = localStorage.getItem("selectedCity") as City || "NYC";
+  return mockPairs.filter(
+    pair => pair.gender !== userGender && pair.city === selectedCity
+  );
 };

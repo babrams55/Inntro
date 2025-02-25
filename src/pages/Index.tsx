@@ -27,8 +27,8 @@ const Index = () => {
         .single();
 
       if (referralError) {
-        // If not a partner code, proceed with normal crew invite flow
-        navigate(`/crew-invite?code=${code}`);
+        // If not a partner code, proceed with city selection
+        navigate(`/city-selection`);
         return;
       }
 

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import CitySelection from "./pages/CitySelection";
 import CrewInvite from "./pages/CrewInvite";
 import ProfileSetup from "./pages/ProfileSetup";
 import SwipeScreen from "./pages/SwipeScreen";
@@ -21,6 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/city-selection" element={<CitySelection />} />
           <Route path="/crew-invite" element={<CrewInvite />} />
           <Route path="/profile-setup" element={<ProfileSetup />} />
           <Route path="/swipe" element={<SwipeScreen />} />
