@@ -21,7 +21,6 @@ const ProfileSetup = () => {
   const [instagram2Handle, setInstagram2Handle] = useState("");
   const [email1, setEmail1] = useState("");
   const [email2, setEmail2] = useState("");
-  const [city, setCity] = useState<string>("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>, photoNum: number) => {
@@ -45,7 +44,7 @@ const ProfileSetup = () => {
   };
 
   const handleSubmit = async () => {
-    if (!photo1 || !photo2 || !bio || !email1 || !email2 || !city || !gender) {
+    if (!photo1 || !photo2 || !bio || !email1 || !email2 || !gender) {
       toast({
         variant: "destructive",
         title: "Required fields missing",
@@ -63,7 +62,6 @@ const ProfileSetup = () => {
           user1_email: email1,
           user2_email: email2,
           gender,
-          city,
           bio,
           status: 'active'
         })
@@ -96,7 +94,7 @@ const ProfileSetup = () => {
     }
   };
 
-  const isComplete = photo1 && photo2 && bio.trim().length > 0 && email1 && email2 && city && gender;
+  const isComplete = photo1 && photo2 && bio.trim().length > 0 && email1 && email2 && gender;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
@@ -109,7 +107,7 @@ const ProfileSetup = () => {
         <div className="space-y-6">
           {/* Gender Selection */}
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
-            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white">
+            <SelectTrigger className="w-full bg-gray-900 border-transparent text-white">
               <SelectValue placeholder="Select your gender" />
             </SelectTrigger>
             <SelectContent className="bg-black/90 border-white/20">
@@ -118,24 +116,12 @@ const ProfileSetup = () => {
             </SelectContent>
           </Select>
 
-          {/* City Selection */}
-          <Select value={city} onValueChange={setCity}>
-            <SelectTrigger className="w-full bg-black/50 border-white/20 text-white">
-              <SelectValue placeholder="Select your city" />
-            </SelectTrigger>
-            <SelectContent className="bg-black/90 border-white/20">
-              <SelectItem value="NYC" className="text-white hover:bg-white/10">New York City</SelectItem>
-              <SelectItem value="Chicago" className="text-white hover:bg-white/10">Chicago</SelectItem>
-              <SelectItem value="LA" className="text-white hover:bg-white/10">Los Angeles</SelectItem>
-            </SelectContent>
-          </Select>
-
           <div className="flex flex-col items-center">
             <div className="flex gap-4 mb-4">
               {/* First Person */}
               <div className="flex flex-col items-center">
                 <div 
-                  className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
+                  className="w-36 h-36 rounded-full bg-gray-900 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
                   style={{
                     backgroundImage: photo1Preview ? `url(${photo1Preview})` : 'none',
                     backgroundSize: 'cover',
@@ -170,7 +156,7 @@ const ProfileSetup = () => {
               {/* Second Person */}
               <div className="flex flex-col items-center">
                 <div 
-                  className="w-36 h-36 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
+                  className="w-36 h-36 rounded-full bg-gray-900 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-2"
                   style={{
                     backgroundImage: photo2Preview ? `url(${photo2Preview})` : 'none',
                     backgroundSize: 'cover',
@@ -211,14 +197,14 @@ const ProfileSetup = () => {
               placeholder="Your email"
               value={email1}
               onChange={(e) => setEmail1(e.target.value)}
-              className="bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+              className="bg-gray-900 border-transparent text-white placeholder:text-white/70"
             />
             <Input
               type="email"
               placeholder="Your friend's email"
               value={email2}
               onChange={(e) => setEmail2(e.target.value)}
-              className="bg-black/50 border-white/20 text-white placeholder:text-gray-500"
+              className="bg-gray-900 border-transparent text-white placeholder:text-white/70"
             />
           </div>
 
@@ -226,7 +212,7 @@ const ProfileSetup = () => {
             placeholder="Write a short bio about you both..."
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 min-h-[100px]"
+            className="bg-gray-900 border-transparent text-white placeholder:text-white/70 min-h-[100px]"
           />
 
           <div className="space-y-3">
@@ -237,7 +223,7 @@ const ProfileSetup = () => {
                 placeholder="Your Instagram handle"
                 value={instagram1Handle}
                 onChange={(e) => setInstagram1Handle(e.target.value)}
-                className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 pl-10"
+                className="bg-gray-900 border-transparent text-white placeholder:text-white/70 pl-10"
                 onClick={() => instagram1Handle && handleInstagramClick(instagram1Handle)}
               />
               <Instagram 
@@ -252,7 +238,7 @@ const ProfileSetup = () => {
                 placeholder="Friend's Instagram handle"
                 value={instagram2Handle}
                 onChange={(e) => setInstagram2Handle(e.target.value)}
-                className="bg-black/50 border-white/20 text-white placeholder:text-gray-500 pl-10"
+                className="bg-gray-900 border-transparent text-white placeholder:text-white/70 pl-10"
                 onClick={() => instagram2Handle && handleInstagramClick(instagram2Handle)}
               />
               <Instagram 
