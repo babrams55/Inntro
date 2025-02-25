@@ -94,6 +94,20 @@ const CrewInvite = () => {
         <p className="text-gray-400 mb-8 text-base text-center">
           Sign up with your wing-wo/man! (Your friend will get a code invite via email)
         </p>
+
+        <div className="mb-8 space-y-2 text-left">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-white"></div>
+            <p className="text-white">designed for the lost post-grad soul</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-white"></div>
+            <p className="text-white">
+              member events starting in May (rooftops, boats, etc)
+              <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Coming Soon</span>
+            </p>
+          </div>
+        </div>
         
         <div className="space-y-4">
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
