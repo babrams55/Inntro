@@ -32,14 +32,15 @@ const CrewInvite = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('send-referral', {
-        body: { 
-          email,
-          code: "REQUEST"
-        }
+      const { data, error } = await supabase.functions.invoke('send-referral', {
+        body: { email }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      console.log('Response:', data);
 
       toast({
         title: "Success!",
@@ -51,7 +52,7 @@ const CrewInvite = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send invitation. Please try again.",
+        description: "Failed to send invitation. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -88,3 +89,4 @@ const CrewInvite = () => {
 };
 
 export default CrewInvite;
+
