@@ -36,11 +36,10 @@ const CrewInvite = () => {
         body: { email }
       });
 
-      if (error) {
-        throw error;
+      if (error || !data?.success) {
+        console.error("Error response:", error || data);
+        throw new Error(error?.message || data?.error || "Failed to send invitation");
       }
-
-      console.log('Response:', data);
 
       toast({
         title: "Success!",
@@ -52,7 +51,7 @@ const CrewInvite = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send invitation. Please try again.",
+        description: error.message || "Failed to send invitation. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -89,4 +88,3 @@ const CrewInvite = () => {
 };
 
 export default CrewInvite;
-

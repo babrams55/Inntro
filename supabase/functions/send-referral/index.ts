@@ -16,53 +16,76 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { email } = await req.json();
-    console.log("Processing email request for:", email);
-
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
-    const { data, error } = await resend.emails.send({
-      from: "Inntro Social <onboarding@resend.dev>",
-      to: [email],
-      subject: "Welcome to Inntro Social!",
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Thanks for your interest!</h2>
-          <p>We've received your request to join Inntro Social.</p>
-          <p>We'll review your request and get back to you soon.</p>
-          <p style="margin-top: 30px; font-size: 14px; color: #666;">
-            Best regards,<br>
-            The Inntro Social Team
-          </p>
-        </div>
-      `,
-    });
-
-    if (error) {
-      console.error("Resend error:", error);
-      throw error;
+    if (!email) {
+      throw new Error("Email is required");
     }
 
-    console.log("Email sent successfully:", data);
+    console.log("Processing email request for:", email);
 
-    return new Response(
-      JSON.stringify({ message: "Email sent successfully", data }), 
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    if (!apiKey) {
+      throw new Error("Resend API key is not configured");
+    }
+
+    const resend = new Resend(apiKey);
+    
+    try {
+      const { data, error: resendError } = await resend.emails.send({
+        from: "Inntro <onboarding@resend.dev>",
+        to: [email],
+        subject: "Welcome to Inntro!",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Thanks for your interest!</h2>
+            <p>We've received your request to join Inntro.</p>
+            <p>We'll review your request and get back to you soon.</p>
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              Best regards,<br>
+              The Inntro Team
+            </p>
+          </div>
+        `,
+      });
+
+      if (resendError) {
+        console.error("Resend API error:", resendError);
+        throw resendError;
       }
-    );
+
+      console.log("Email sent successfully:", data);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: "Email sent successfully"
+        }), 
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    } catch (emailError) {
+      console.error("Failed to send email:", emailError);
+      throw new Error("Failed to send email");
+    }
   } catch (error: any) {
     console.error("Error in send-referral function:", error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send email" 
+        success: false,
+        error: error.message || "An unexpected error occurred"
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 
+          "Content-Type": "application/json",
+          ...corsHeaders
+        },
       }
     );
   }
