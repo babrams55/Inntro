@@ -29,8 +29,6 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request:', await req.clone().text());
-
     // Handle new access request submission
     if (req.method === 'POST') {
       const { email, instagram, university } = await req.json();
@@ -83,12 +81,12 @@ serve(async (req) => {
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 30px;">
-              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=approve" 
+              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=approve&key=${Deno.env.get("SUPABASE_ANON_KEY")}" 
                  style="background: #22C55E; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Approve
               </a>
               
-              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=reject" 
+              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=reject&key=${Deno.env.get("SUPABASE_ANON_KEY")}" 
                  style="background: #EF4444; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Reject
               </a>
@@ -113,9 +111,14 @@ serve(async (req) => {
       const url = new URL(req.url);
       const token = url.searchParams.get('token');
       const action = url.searchParams.get('action');
+      const key = url.searchParams.get('key');
 
       if (!token || !action) {
         throw new Error('Missing token or action');
+      }
+
+      if (key !== Deno.env.get("SUPABASE_ANON_KEY")) {
+        throw new Error('Unauthorized');
       }
 
       const approved = action === 'approve';
