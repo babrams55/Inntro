@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,9 @@ const ChatScreen = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No chat selected. Redirecting to swipe screen..."
+        description: "No chat selected. Redirecting to home screen..."
       });
-      navigate('/swipe');
+      navigate('/');
       return;
     }
 
@@ -86,7 +87,7 @@ const ChatScreen = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [matchId, currentPairId, toast, navigate]);
+  }, [matchId, toast, navigate]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -127,7 +128,7 @@ const ChatScreen = () => {
           variant="ghost"
           size="icon"
           className="text-white"
-          onClick={() => navigate('/swipe')}
+          onClick={() => navigate('/')}
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
