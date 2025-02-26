@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -8,14 +9,25 @@ import { SwipeHeader } from "@/components/SwipeHeader";
 import { MatchesList } from "@/components/MatchesList";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { Pair } from "@/utils/swipeUtils";
+
+interface Profile {
+  id: string;
+  bio: string;
+  photo1_url?: string;
+  photo2_url?: string;
+  user1_email: string;
+  user2_email: string;
+  gender: string;
+}
 
 const SwipeScreen = () => {
   const navigate = useNavigate();
   const [showMatches, setShowMatches] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [referralCode, setReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
 
@@ -166,6 +178,14 @@ const SwipeScreen = () => {
     }
   };
 
+  const mapProfileToPair = (profile: Profile): Pair => ({
+    id: profile.id,
+    names: `${profile.user1_email} & ${profile.user2_email}`,
+    ages: profile.gender === 'M' ? 'Male Pair' : 'Female Pair',
+    bio: profile.bio,
+    image: profile.photo1_url || '/placeholder.svg',
+  });
+
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <SwipeHeader
@@ -225,7 +245,10 @@ const SwipeScreen = () => {
               </Button>
               <h2 className="text-white text-lg ml-2">Your Matches</h2>
             </div>
-            <MatchesList onClose={() => setShowMatches(false)} />
+            <MatchesList 
+              onClose={() => setShowMatches(false)}
+              currentPairId={currentProfile?.id || ''}
+            />
           </div>
         ) : (
           <>
@@ -234,14 +257,12 @@ const SwipeScreen = () => {
                 {profiles.map((profile, index) => (
                   <SwipeCard
                     key={profile.id}
-                    profile={profile}
-                    isActive={index === currentIndex}
+                    pair={mapProfileToPair(profile)}
+                    dragPosition={{ x: 0, y: 0 }}
+                    threshold={100}
                   />
                 ))}
-                <SwipeActions
-                  onSwipe={(direction) => handleSwipe(direction)}
-                  disabled={loading || profiles.length === 0}
-                />
+                <SwipeActions onSwipe={handleSwipe} />
               </div>
             )}
           </>
