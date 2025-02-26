@@ -110,6 +110,8 @@ serve(async (req) => {
       })
       .eq('approval_token', token);
 
+    console.log(`Successfully ${approved ? 'approved' : 'rejected'} request for ${requestData.email}`);
+
     return new Response(
       JSON.stringify({ success: true }),
       {
