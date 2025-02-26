@@ -6,6 +6,12 @@ import { motion } from "framer-motion";
 
 export type City = "NYC" | "Chicago" | "LA";
 
+const cities: { name: City; image: string }[] = [
+  { name: "NYC", image: "/lovable-uploads/e1085649-7490-4989-a413-a86db207d414.png" },
+  { name: "Chicago", image: "/lovable-uploads/6a74b48a-e905-464a-97fe-ce0ae56f7cf2.png" },
+  { name: "LA", image: "/lovable-uploads/6c17a9a9-e53c-43bb-98f5-c75dd88ede97.png" }
+];
+
 const CitySelection = () => {
   const [selectedCity, setSelectedCity] = useState<City>("NYC");
   const navigate = useNavigate();

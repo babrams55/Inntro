@@ -13,8 +13,11 @@ const CrewInvite = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log("CrewInvite mounted, current path:", location.pathname);
-  }, [location.pathname]);
+    // Redirect /invite to /crew-invite for consistency
+    if (location.pathname === "/invite") {
+      navigate("/crew-invite", { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   const handleInvite = async () => {
     if (!email) {
@@ -67,7 +70,7 @@ const CrewInvite = () => {
       
       setEmail("");
       console.log("Navigating to profile-setup");
-      navigate("/profile-setup"); // Changed navigation to profile-setup
+      navigate("/profile-setup");
     } catch (error: any) {
       console.error("Full error details:", error);
       toast({

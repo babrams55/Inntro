@@ -18,7 +18,6 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/crew-invite" element={<CrewInvite />} />
-        <Route path="/invite" element={<CrewInvite />} />
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
