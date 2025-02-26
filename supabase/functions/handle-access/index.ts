@@ -21,13 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const generateCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  return Array.from(
-    { length: 6 },
-    () => chars[Math.floor(Math.random() * chars.length)]
-  ).join('');
-};
+const ADMIN_EMAIL = "support@inntro.us";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -35,7 +29,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request:', await req.clone().text());
     const { token, approved } = await req.json();
+
+    console.log('Processing request with token:', token, 'approved:', approved);
 
     if (!token) {
       throw new Error('Missing approval token');
@@ -48,6 +45,8 @@ serve(async (req) => {
       .eq('approval_token', token)
       .single();
 
+    console.log('Request data:', requestData, 'Error:', requestError);
+
     if (requestError || !requestData) {
       throw new Error('Invalid or expired approval token');
     }
@@ -59,9 +58,10 @@ serve(async (req) => {
     // Generate access code if approved
     if (approved) {
       const code = generateCode();
+      console.log('Generated code:', code, 'for email:', requestData.email);
       
       // Create the referral code using service role client
-      await supabase
+      const { error: referralError } = await supabase
         .from('referral_codes')
         .insert({
           code,
@@ -70,8 +70,13 @@ serve(async (req) => {
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
         });
 
-      // Send approval email with code
-      await resend.emails.send({
+      if (referralError) {
+        console.error('Error creating referral code:', referralError);
+        throw new Error('Failed to create referral code');
+      }
+
+      // Send approval email with code to user
+      const userEmailResult = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
         to: [requestData.email],
         subject: "Welcome to Inntro Social!",
@@ -86,9 +91,34 @@ serve(async (req) => {
           </div>
         `,
       });
+
+      // Send notification to admin
+      const adminEmailResult = await resend.emails.send({
+        from: "Inntro Social <support@inntro.us>",
+        to: [ADMIN_EMAIL],
+        subject: `Access Granted - ${requestData.email}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1>Access Request Approved</h1>
+            <p>You have approved access for: ${requestData.email}</p>
+            <p>Generated access code: ${code}</p>
+            <p>User Details:</p>
+            <ul>
+              <li>Instagram: ${requestData.instagram}</li>
+              <li>University: ${requestData.university}</li>
+            </ul>
+          </div>
+        `,
+      });
+
+      console.log('Email results:', { 
+        userEmail: userEmailResult, 
+        adminEmail: adminEmailResult 
+      });
+
     } else {
-      // Send rejection email
-      await resend.emails.send({
+      // Send rejection email to user
+      const userEmailResult = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
         to: [requestData.email],
         subject: "Inntro Social Access Request Update",
@@ -100,15 +130,43 @@ serve(async (req) => {
           </div>
         `,
       });
+
+      // Send notification to admin
+      const adminEmailResult = await resend.emails.send({
+        from: "Inntro Social <support@inntro.us>",
+        to: [ADMIN_EMAIL],
+        subject: `Access Denied - ${requestData.email}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1>Access Request Denied</h1>
+            <p>You have denied access for: ${requestData.email}</p>
+            <p>User Details:</p>
+            <ul>
+              <li>Instagram: ${requestData.instagram}</li>
+              <li>University: ${requestData.university}</li>
+            </ul>
+          </div>
+        `,
+      });
+
+      console.log('Email results:', { 
+        userEmail: userEmailResult, 
+        adminEmail: adminEmailResult 
+      });
     }
 
     // Update request status using service role client
-    await supabase
+    const { error: updateError } = await supabase
       .from('access_requests')
       .update({
         status: approved ? 'approved' : 'rejected'
       })
       .eq('approval_token', token);
+
+    if (updateError) {
+      console.error('Error updating request status:', updateError);
+      throw new Error('Failed to update request status');
+    }
 
     console.log(`Successfully ${approved ? 'approved' : 'rejected'} request for ${requestData.email}`);
 
@@ -130,3 +188,11 @@ serve(async (req) => {
     );
   }
 });
+
+const generateCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return Array.from(
+    { length: 6 },
+    () => chars[Math.floor(Math.random() * chars.length)]
+  ).join('');
+};
