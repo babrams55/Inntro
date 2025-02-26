@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Function invoked - starting process");
+    
     // 1. Verify incoming data
     const { email } = await req.json();
     if (!email) {
@@ -24,50 +26,26 @@ serve(async (req) => {
 
     // 2. Verify environment variables
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
     if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not configured");
-    }
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase configuration is missing");
+      console.error("RESEND_API_KEY is missing");
+      throw new Error("Internal configuration error");
     }
 
-    // 3. Initialize Supabase client
-    console.log("Initializing Supabase client...");
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize Resend
+    const resend = new Resend(resendApiKey);
 
-    // 4. Generate and store referral code
+    // 3. Generate referral code
     const code = Array.from(
       { length: 6 },
       () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
     ).join("");
-    console.log("Generated referral code:", code);
+    
+    console.log("Generated code:", code);
 
-    // 5. Store code in database first
-    console.log("Storing referral code in database...");
-    const { error: dbError } = await supabase
-      .from("referral_codes")
-      .insert({
-        code,
-        email_to: email,
-        created_by_email: "onboarding@resend.dev", // Using Resend's test email
-        email_sent: false,
-      });
-
-    if (dbError) {
-      console.error("Database error:", dbError);
-      throw dbError;
-    }
-
-    // 6. Send email using Resend's test email
-    console.log("Initializing Resend...");
-    const resend = new Resend(resendApiKey);
-
-    console.log("Sending email...");
+    // 4. Send email
+    console.log("Attempting to send email...");
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Inntro <onboarding@resend.dev>", // Using Resend's test email
+      from: "Inntro <onboarding@resend.dev>",
       to: email,
       subject: "Your Inntro Social Invitation Code",
       html: `
@@ -90,23 +68,12 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailData);
 
-    // 7. Update database to mark email as sent
-    console.log("Updating email sent status...");
-    const { error: updateError } = await supabase
-      .from("referral_codes")
-      .update({ email_sent: true })
-      .eq("code", code);
-
-    if (updateError) {
-      console.error("Error updating email_sent status:", updateError);
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true,
         message: "Invitation sent successfully",
         code,
-        emailData // Include email response for debugging
+        emailData
       }),
       { 
         headers: { 
