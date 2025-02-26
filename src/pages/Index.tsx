@@ -64,6 +64,19 @@ export default function Index() {
           .update({ status: 'approved' })
           .eq('id', request.id);
 
+        // Call the edge function to send email
+        const { error: functionError } = await supabase.functions.invoke('handle-access', {
+          body: {
+            token: request.approval_token,
+            approved: true
+          }
+        });
+
+        if (functionError) {
+          console.error('Error invoking edge function:', functionError);
+          throw new Error('Failed to send approval email');
+        }
+
         toast({
           title: "Access Granted",
           description: `Generated code ${code} for ${request.email}`
@@ -74,6 +87,19 @@ export default function Index() {
           .from('access_requests')
           .update({ status: 'rejected' })
           .eq('id', request.id);
+
+        // Call the edge function to send rejection email
+        const { error: functionError } = await supabase.functions.invoke('handle-access', {
+          body: {
+            token: request.approval_token,
+            approved: false
+          }
+        });
+
+        if (functionError) {
+          console.error('Error invoking edge function:', functionError);
+          throw new Error('Failed to send rejection email');
+        }
 
         toast({
           title: "Access Denied",
