@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
@@ -8,8 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CrewInvite = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("CrewInvite mounted, current path:", location.pathname);
+  }, [location.pathname]);
 
   const handleInvite = async () => {
     if (!email) {
@@ -34,18 +39,15 @@ const CrewInvite = () => {
     setLoading(true);
 
     try {
-      // Test function accessibility first
       console.log("About to invoke send-referral function for:", email);
       
       const { data, error } = await supabase.functions.invoke("send-referral", {
         body: { email },
-        // Add headers to ensure proper CORS handling
         headers: {
           "Content-Type": "application/json",
         }
       });
 
-      // Log raw response for debugging
       console.log("Raw function response:", { data, error });
 
       if (error) {
@@ -64,6 +66,7 @@ const CrewInvite = () => {
       });
       
       setEmail("");
+      console.log("Navigating to city-selection");
       navigate("/city-selection");
     } catch (error: any) {
       console.error("Full error details:", error);
