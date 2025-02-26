@@ -90,14 +90,18 @@ export default function Index() {
 
   const handleApproval = async (request: any, approved: boolean) => {
     try {
-      const { data, error: functionError } = await supabase.functions.invoke('handle-access', {
+      // Get session first
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      const { error: functionError } = await supabase.functions.invoke('handle-access', {
         body: {
           token: request.approval_token,
           approved
         },
-        headers: {
-          Authorization: `Bearer ${supabase.auth.getSession()?.access_token || ''}`
-        }
+        headers: accessToken ? {
+          Authorization: `Bearer ${accessToken}`
+        } : undefined
       });
 
       if (functionError) {
