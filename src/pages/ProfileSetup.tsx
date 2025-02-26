@@ -124,8 +124,8 @@ const ProfileSetup = () => {
         description: "Your profile has been set up successfully.",
       });
 
-      // Navigate to city selection after successful submission
-      navigate("/city-selection");
+      // Changed navigation to go to /invite instead of /city-selection
+      navigate("/invite");
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({
