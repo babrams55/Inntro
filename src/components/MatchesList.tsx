@@ -31,6 +31,13 @@ export const MatchesList = ({ currentPairId, onClose }: MatchesListProps) => {
 
   useEffect(() => {
     const fetchMatches = async () => {
+      // Validate that currentPairId is a valid UUID before querying
+      if (!currentPairId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentPairId)) {
+        console.error("Invalid pair ID format:", currentPairId);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('pair_matches')
         .select(`
