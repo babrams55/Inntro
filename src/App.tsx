@@ -16,6 +16,7 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/invite" element={<CrewInvite />} />
+        <Route path="/crew-invite" element={<CrewInvite />} /> {/* Added this route as an alias */}
         <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
