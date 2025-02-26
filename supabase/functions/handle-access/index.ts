@@ -22,6 +22,7 @@ const corsHeaders = {
 };
 
 const ADMIN_EMAIL = "support@inntro.us";
+const FUNCTION_SECRET = Deno.env.get("FUNCTION_SECRET") || crypto.randomUUID();
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -54,7 +55,7 @@ serve(async (req) => {
         throw new Error('Failed to create access request');
       }
 
-      // Send admin notification email
+      // Send admin notification email with a secret token
       const adminEmailResult = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
         to: [ADMIN_EMAIL],
@@ -81,12 +82,12 @@ serve(async (req) => {
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 30px;">
-              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=approve&key=${Deno.env.get("SUPABASE_ANON_KEY")}" 
+              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=approve&secret=${FUNCTION_SECRET}" 
                  style="background: #22C55E; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Approve
               </a>
               
-              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=reject&key=${Deno.env.get("SUPABASE_ANON_KEY")}" 
+              <a href="${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-access?token=${approval_token}&action=reject&secret=${FUNCTION_SECRET}" 
                  style="background: #EF4444; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Reject
               </a>
@@ -111,13 +112,16 @@ serve(async (req) => {
       const url = new URL(req.url);
       const token = url.searchParams.get('token');
       const action = url.searchParams.get('action');
-      const key = url.searchParams.get('key');
+      const secret = url.searchParams.get('secret');
+
+      console.log('Processing approval/rejection request:', { token, action, hasSecret: !!secret });
 
       if (!token || !action) {
         throw new Error('Missing token or action');
       }
 
-      if (key !== Deno.env.get("SUPABASE_ANON_KEY")) {
+      if (secret !== FUNCTION_SECRET) {
+        console.error('Invalid secret provided');
         throw new Error('Unauthorized');
       }
 
