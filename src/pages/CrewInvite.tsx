@@ -1,11 +1,13 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const CrewInvite = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +48,8 @@ const CrewInvite = () => {
           description: "Invitation sent successfully.",
         });
         setEmail("");
+        // After successful invite, navigate to city selection
+        navigate("/city-selection");
       } else {
         throw new Error("Failed to send invitation");
       }

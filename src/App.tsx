@@ -15,10 +15,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/profile-setup" element={<ProfileSetup />} />
+        <Route path="/invite" element={<CrewInvite />} />
         <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
-        <Route path="/invite" element={<CrewInvite />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
