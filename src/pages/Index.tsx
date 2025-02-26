@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +13,71 @@ export default function Index() {
   const [instagram, setInstagram] = useState("");
   const [university, setUniversity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPendingRequests();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email === 'support@inntro.us') {
+      setIsAdmin(true);
+      fetchPendingRequests();
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword,
+      });
+
+      if (error) throw error;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email === 'support@inntro.us') {
+        setIsAdmin(true);
+        fetchPendingRequests();
+        setShowAdminLogin(false);
+        toast({
+          title: "Logged in successfully",
+          description: "Welcome back, admin!"
+        });
+      } else {
+        await supabase.auth.signOut();
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "This account doesn't have admin privileges"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAdmin(false);
+    setPendingRequests([]);
+    toast({
+      title: "Logged out successfully"
+    });
+  };
 
   const fetchPendingRequests = async () => {
     const { data, error } = await supabase
@@ -34,6 +92,46 @@ export default function Index() {
     }
 
     setPendingRequests(data || []);
+  };
+
+  const handleRequestApproval = async (request: any, approved: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('access_requests')
+        .update({ 
+          status: approved ? 'approved' : 'rejected' 
+        })
+        .eq('id', request.id);
+
+      if (error) throw error;
+
+      if (approved) {
+        // Generate referral code for approved request
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const { error: codeError } = await supabase
+          .from('referral_codes')
+          .insert({
+            code,
+            email_to: request.email,
+            created_by_email: 'support@inntro.us'
+          });
+
+        if (codeError) throw codeError;
+      }
+
+      toast({
+        title: approved ? "Request Approved" : "Request Rejected",
+        description: `${request.email} has been ${approved ? 'approved' : 'rejected'}`
+      });
+
+      fetchPendingRequests();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
   };
 
   const handleAccessRequest = async () => {
@@ -88,45 +186,6 @@ export default function Index() {
     }
   };
 
-  const handleApproval = async (request: any, approved: boolean) => {
-    try {
-      // Get session first
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-
-      const { error: functionError } = await supabase.functions.invoke('handle-access', {
-        body: {
-          token: request.approval_token,
-          approved
-        },
-        headers: accessToken ? {
-          Authorization: `Bearer ${accessToken}`
-        } : undefined
-      });
-
-      if (functionError) {
-        throw functionError;
-      }
-
-      toast({
-        title: approved ? "Access Granted" : "Access Denied",
-        description: approved 
-          ? `Approved request from ${request.email}`
-          : `Rejected request from ${request.email}`
-      });
-
-      // Refresh the pending requests list
-      fetchPendingRequests();
-    } catch (error: any) {
-      console.error('Error handling approval:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to process request"
-      });
-    }
-  };
-
   const handleSubmit = async () => {
     if (!code) {
       toast({
@@ -177,12 +236,55 @@ export default function Index() {
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2 text-blue-500">Inntro Social</h1>
           <p className="text-pink-400">&quot;double dates&quot;</p>
+          {!isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 text-gray-400 hover:text-white"
+              onClick={() => setShowAdminLogin(!showAdminLogin)}
+            >
+              {showAdminLogin ? "← Back" : "Admin Login"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 text-gray-400 hover:text-white"
+              onClick={handleAdminLogout}
+            >
+              Logout
+            </Button>
+          )}
         </div>
 
-        {/* Admin Section for Pending Requests */}
-        {pendingRequests.length > 0 && (
+        {showAdminLogin ? (
+          <div className="space-y-4">
+            <Input
+              type="email"
+              placeholder="Admin Email"
+              value={adminEmail}
+              onChange={e => setAdminEmail(e.target.value)}
+              className="bg-gray-900 text-white placeholder:text-white/70"
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={adminPassword}
+              onChange={e => setAdminPassword(e.target.value)}
+              className="bg-gray-900 text-white placeholder:text-white/70"
+            />
+            <Button
+              className="w-full"
+              onClick={handleAdminLogin}
+              disabled={loading || !adminEmail || !adminPassword}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </div>
+        ) : isAdmin ? (
           <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
-            <h2 className="text-white font-semibold">Pending Requests</h2>
+            <h2 className="text-white font-semibold">Pending Requests ({pendingRequests.length})</h2>
             {pendingRequests.map((request) => (
               <div key={request.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded">
                 <div className="text-sm text-white">
@@ -194,7 +296,7 @@ export default function Index() {
                     variant="ghost"
                     size="sm"
                     className="text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                    onClick={() => handleApproval(request, true)}
+                    onClick={() => handleRequestApproval(request, true)}
                   >
                     <CheckCircle2 className="h-5 w-5" />
                   </Button>
@@ -202,90 +304,93 @@ export default function Index() {
                     variant="ghost"
                     size="sm"
                     className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                    onClick={() => handleApproval(request, false)}
+                    onClick={() => handleRequestApproval(request, false)}
                   >
                     <XCircle className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {!showRequestForm ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Enter access code"
-                value={code}
-                onChange={e => setCode(e.target.value.toUpperCase())}
-                maxLength={6}
-                className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <Button
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={loading || !code}
-              >
-                {loading ? "Checking..." : "Continue"}
-              </Button>
-            </div>
-            <div className="text-center">
-              <Button
-                variant="link"
-                className="text-gray-400 hover:text-white"
-                onClick={() => setShowRequestForm(true)}
-              >
-                Request Access
-              </Button>
-            </div>
+            {pendingRequests.length === 0 && (
+              <p className="text-gray-400 text-center">No pending requests</p>
+            )}
           </div>
         ) : (
-          <div className="space-y-4">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="bg-gray-900 text-white placeholder:text-white/70"
-            />
-            <Input
-              type="text"
-              placeholder="Instagram handle"
-              value={instagram}
-              onChange={e => setInstagram(e.target.value)}
-              className="bg-gray-900 text-white placeholder:text-white/70"
-            />
-            <Input
-              type="text"
-              placeholder="University"
-              value={university}
-              onChange={e => setUniversity(e.target.value)}
-              className="bg-gray-900 text-white placeholder:text-white/70"
-            />
-            <div className="space-y-2">
-              <Button
-                className="w-full"
-                onClick={handleAccessRequest}
-                disabled={loading}
-              >
-                {loading ? "Sending..." : "Submit Request"}
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
-                onClick={() => {
-                  setShowRequestForm(false);
-                  setEmail("");
-                  setInstagram("");
-                  setUniversity("");
-                }}
-              >
-                Cancel
-              </Button>
+          !showRequestForm ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Enter access code"
+                  value={code}
+                  onChange={e => setCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70"
+                />
+                <Button
+                  className="w-full"
+                  onClick={handleSubmit}
+                  disabled={loading || !code}
+                >
+                  {loading ? "Checking..." : "Continue"}
+                </Button>
+              </div>
+              <div className="text-center">
+                <Button
+                  variant="link"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setShowRequestForm(true)}
+                >
+                  Request Access
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="bg-gray-900 text-white placeholder:text-white/70"
+              />
+              <Input
+                type="text"
+                placeholder="Instagram handle"
+                value={instagram}
+                onChange={e => setInstagram(e.target.value)}
+                className="bg-gray-900 text-white placeholder:text-white/70"
+              />
+              <Input
+                type="text"
+                placeholder="University"
+                value={university}
+                onChange={e => setUniversity(e.target.value)}
+                className="bg-gray-900 text-white placeholder:text-white/70"
+              />
+              <div className="space-y-2">
+                <Button
+                  className="w-full"
+                  onClick={handleAccessRequest}
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Submit Request"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-white"
+                  onClick={() => {
+                    setShowRequestForm(false);
+                    setEmail("");
+                    setInstagram("");
+                    setUniversity("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>
