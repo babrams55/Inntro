@@ -66,8 +66,8 @@ const CrewInvite = () => {
       });
       
       setEmail("");
-      console.log("Navigating to city-selection");
-      navigate("/city-selection");
+      console.log("Navigating to profile-setup");
+      navigate("/profile-setup"); // Changed navigation to profile-setup
     } catch (error: any) {
       console.error("Full error details:", error);
       toast({

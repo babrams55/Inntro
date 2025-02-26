@@ -10,18 +10,18 @@ import ChatScreen from "./pages/ChatScreen";
 import CrewInvite from "./pages/CrewInvite";
 
 function App() {
-  console.log("Current pathname:", window.location.pathname); // Debug log
+  console.log("Current pathname:", window.location.pathname);
   
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/city-selection" element={<CitySelection />} />
+        <Route path="/crew-invite" element={<CrewInvite />} />
+        <Route path="/invite" element={<CrewInvite />} />
+        <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
-        <Route path="/invite" element={<CrewInvite />} />
-        <Route path="/crew-invite" element={<CrewInvite />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
