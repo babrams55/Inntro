@@ -34,31 +34,37 @@ const CrewInvite = () => {
     setLoading(true);
 
     try {
+      console.log("Sending invite request for:", email);
+      
       const { data, error } = await supabase.functions.invoke("send-referral", {
         body: { email }
       });
 
-      console.log("Response:", { data, error });
+      console.log("Function response:", { data, error });
 
-      if (error) throw error;
-
-      if (data?.success) {
-        toast({
-          title: "Success!",
-          description: "Invitation sent successfully.",
-        });
-        setEmail("");
-        // After successful invite, navigate to city selection
-        navigate("/city-selection");
-      } else {
-        throw new Error("Failed to send invitation");
+      if (error) {
+        console.error("Function error:", error);
+        throw error;
       }
-    } catch (error) {
-      console.error("Error:", error);
+
+      if (!data?.success) {
+        console.error("Function returned unsuccessful:", data);
+        throw new Error(data?.error || "Failed to send invitation");
+      }
+
+      toast({
+        title: "Success!",
+        description: "Invitation sent successfully.",
+      });
+      
+      setEmail("");
+      navigate("/city-selection");
+    } catch (error: any) {
+      console.error("Error details:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send invitation. Please try again.",
+        description: error.message || "Failed to send invitation. Please try again.",
       });
     } finally {
       setLoading(false);
