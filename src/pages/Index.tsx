@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,13 @@ export default function Index() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const navigate = useNavigate();
 
+  // Add useEffect to fetch pending requests when isAdmin changes
+  useEffect(() => {
+    if (isAdmin) {
+      fetchPendingRequests();
+    }
+  }, [isAdmin]);
+
   const fetchPendingRequests = async () => {
     console.log('Fetching pending requests...');
     const { data, error } = await supabase
@@ -30,6 +37,11 @@ export default function Index() {
 
     if (error) {
       console.error('Error fetching requests:', error);
+      toast({
+        variant: "destructive",
+        title: "Error Fetching Requests",
+        description: error.message
+      });
       return;
     }
 
