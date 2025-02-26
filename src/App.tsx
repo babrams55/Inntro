@@ -5,7 +5,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CitySelection from "./pages/CitySelection";
 import ProfileSetup from "./pages/ProfileSetup";
-import SwipeScreen from "./pages/SwipeScreen";
 import ChatScreen from "./pages/ChatScreen";
 import CrewInvite from "./pages/CrewInvite";
 
@@ -19,7 +18,6 @@ function App() {
         <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/crew-invite" element={<CrewInvite />} />
         <Route path="/profile-setup" element={<ProfileSetup />} />
-        <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

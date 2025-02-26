@@ -1,348 +1,274 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SwipeCard } from "@/components/SwipeCard";
+import { SwipeActions } from "@/components/SwipeActions";
+import { SwipeHeader } from "@/components/SwipeHeader";
+import { MatchesList } from "@/components/MatchesList";
+import { ProfileEditor } from "@/components/ProfileEditor";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { Pair, SwipeDirection } from "@/utils/swipeUtils";
 
-const ADMIN_CODE = "847519";
+interface Profile {
+  id: string;
+  bio: string;
+  photo1_url?: string;
+  photo2_url?: string;
+  user1_email: string;
+  user2_email: string;
+  gender: string;
+}
 
-export default function Index() {
-  const [code, setCode] = useState("");
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [email, setEmail] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [university, setUniversity] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+const Index = () => {
   const navigate = useNavigate();
+  const [showMatches, setShowMatches] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralCopied, setReferralCopied] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchPendingRequests();
-    }
-  }, [isAdmin]);
+    fetchCurrentProfile();
+    loadProfiles();
+    generateNewCode();
+  }, []);
 
-  const fetchPendingRequests = async () => {
-    console.log('Fetching pending requests...');
-    const { data, error } = await supabase
-      .from('access_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching requests:', error);
-      toast({
-        variant: "destructive",
-        title: "Error Fetching Requests",
-        description: error.message
-      });
+  const fetchCurrentProfile = async () => {
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      navigate('/city-selection');
       return;
     }
 
-    console.log('Fetched requests:', data);
-    setPendingRequests(data || []);
+    const { data, error } = await supabase
+      .from('friend_pairs')
+      .select('*')
+      .eq('id', currentPairId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return;
+    }
+
+    setCurrentProfile(data);
   };
 
-  const handleRequestApproval = async (request: any, approved: boolean) => {
+  const loadProfiles = async () => {
+    setLoading(true);
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      console.error('No pair ID found');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from('access_requests')
-        .update({ 
-          status: approved ? 'approved' : 'rejected' 
-        })
-        .eq('id', request.id);
+      const { data, error } = await supabase
+        .from('friend_pairs')
+        .select('*')
+        .neq('id', currentPairId)
+        .eq('city', localStorage.getItem("selectedCity") || "NYC")
+        .limit(10);
 
       if (error) throw error;
 
-      if (approved) {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { error: codeError } = await supabase
-          .from('referral_codes')
-          .insert({
-            code,
-            email_to: request.email,
-            created_by_email: 'support@inntro.us'
-          });
-
-        if (codeError) throw codeError;
-
-        const emailResponse = await supabase.functions.invoke('send-approval', {
-          body: { email: request.email, code }
-        });
-
-        if (emailResponse.error) {
-          console.error('Error sending approval email:', emailResponse.error);
-          toast({
-            variant: "destructive",
-            title: "Error Sending Email",
-            description: "The request was approved but we couldn't send the email."
-          });
-        }
-      }
-
-      toast({
-        title: approved ? "Request Approved" : "Request Rejected",
-        description: `${request.email} has been ${approved ? 'approved' : 'rejected'}`
-      });
-
-      fetchPendingRequests();
+      setProfiles(data || []);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
+      console.error("Error loading profiles:", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAccessRequest = async () => {
-    if (!email || !instagram || !university) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all fields"
-      });
-      return;
-    }
+  const handleSwipe = async (direction: SwipeDirection) => {
+    if (!currentProfile) return;
 
-    setLoading(true);
+    const swipedProfile = profiles[currentIndex];
+    if (!swipedProfile) return;
 
-    try {
-      console.log('Submitting access request...');
-      const { data, error } = await supabase
-        .from('access_requests')
-        .insert([
-          {
-            email,
-            instagram,
-            university,
-            approval_token: crypto.randomUUID(),
-            status: 'pending'
-          }
-        ])
-        .select();
+    if (direction === 'right') {
+      // Record the like
+      const { error } = await supabase
+        .from('pair_likes')
+        .insert([{ from_pair_id: currentProfile.id, to_pair_id: swipedProfile.id }]);
 
       if (error) {
-        console.error('Error submitting request:', error);
-        throw error;
-      }
-
-      console.log('Access request submitted:', data);
-      
-      toast({
-        title: "Request Sent Successfully",
-        description: "We'll review your request and get back to you soon!"
-      });
-      
-      setShowRequestForm(false);
-      setEmail("");
-      setInstagram("");
-      setUniversity("");
-    } catch (error: any) {
-      console.error('Error in handleAccessRequest:', error);
-      toast({
-        variant: "destructive",
-        title: "Error Submitting Request",
-        description: error.message || "Failed to submit request. Please try again."
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!code || code.length !== 6) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter a 6-digit access code"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (code === ADMIN_CODE) {
-        setIsAdmin(true);
-        console.log('Admin access granted, fetching requests...');
-        await fetchPendingRequests();
-        toast({
-          title: "Admin Access Granted",
-          description: "Welcome, admin!"
-        });
+        console.error("Error recording like:", error);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('referral_codes')
-        .select()
-        .eq('code', code.toUpperCase())
-        .eq('used', false)
+      // Check for a mutual like (match)
+      const { data: existingLike, error: matchError } = await supabase
+        .from('pair_likes')
+        .select('*')
+        .eq('from_pair_id', swipedProfile.id)
+        .eq('to_pair_id', currentProfile.id)
         .single();
 
-      if (error || !data) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Code",
-          description: "Please check your code and try again"
-        });
+      if (matchError) {
+        console.error("Error checking for match:", matchError);
         return;
       }
 
-      await supabase
-        .from('referral_codes')
-        .update({ used: true })
-        .eq('id', data.id);
+      if (existingLike) {
+        // Create a match
+        const { error: createMatchError } = await supabase
+          .from('pair_matches')
+          .insert([{ pair1_id: currentProfile.id, pair2_id: swipedProfile.id, status: 'active' }]);
 
-      navigate("/city-selection");
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Something went wrong. Please try again."
-      });
-    } finally {
-      setLoading(false);
+        if (createMatchError) {
+          console.error("Error creating match:", createMatchError);
+          return;
+        }
+      }
+    }
+
+    // Move to the next profile
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < profiles.length) {
+      setCurrentIndex(nextIndex);
+    } else {
+      // Optionally, reload profiles or indicate no more profiles
+      loadProfiles();
+      setCurrentIndex(0);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2 text-blue-500">Inntro Social</h1>
-          <p className="text-pink-400">&quot;double dates&quot;</p>
-        </div>
+  const generateNewCode = async () => {
+    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setReferralCode(newCode);
+  
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      console.error('No pair ID found');
+      return;
+    }
+  
+    const { data: existingReferral, error: selectError } = await supabase
+      .from('pair_referrals')
+      .select('*')
+      .eq('inviter_pair_id', currentPairId)
+      .eq('used', false)
+      .single();
+  
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error("Error checking existing referral:", selectError);
+      return;
+    }
+  
+    if (existingReferral) {
+      setReferralCode(existingReferral.referral_code);
+      return;
+    }
+  
+    const expires_at = new Date();
+    expires_at.setDate(expires_at.getDate() + 7);
+  
+    const { error: insertError } = await supabase
+      .from('pair_referrals')
+      .insert([{ inviter_pair_id: currentPairId, referral_code: newCode, expires_at: expires_at.toISOString(), used: false }]);
+  
+    if (insertError) {
+      console.error("Error creating referral code:", insertError);
+    }
+  };
 
-        {isAdmin ? (
-          <>
-            <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-white font-semibold">Pending Requests ({pendingRequests.length})</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white"
-                  onClick={() => setIsAdmin(false)}
-                >
-                  Exit Admin
-                </Button>
+  const mapProfileToPair = (profile: Profile): Pair => ({
+    id: profile.id,
+    names: `${profile.user1_email} & ${profile.user2_email}`,
+    ages: profile.gender === 'M' ? 'Male Pair' : 'Female Pair',
+    bio: profile.bio,
+    image: profile.photo1_url || '/placeholder.svg',
+  });
+
+  return (
+    <div className="min-h-screen bg-black flex flex-col">
+      <SwipeHeader
+        referralCode={referralCode}
+        referralCopied={referralCopied}
+        generateNewCode={generateNewCode}
+        onChatClick={() => setShowMatches(true)}
+      />
+      
+      {/* Profile Editor Section */}
+      {currentProfile && (
+        <div className="px-4 py-3 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex -space-x-2">
+                {currentProfile.photo1_url && (
+                  <img 
+                    src={currentProfile.photo1_url} 
+                    alt="Your photo" 
+                    className="w-10 h-10 rounded-full border-2 border-black"
+                  />
+                )}
+                {currentProfile.photo2_url && (
+                  <img 
+                    src={currentProfile.photo2_url} 
+                    alt="Friend's photo" 
+                    className="w-10 h-10 rounded-full border-2 border-black"
+                  />
+                )}
               </div>
-              {pendingRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded">
-                  <div className="text-sm text-white">
-                    <div>{request.email}</div>
-                    <div className="text-gray-400">{request.instagram} - {request.university}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                      onClick={() => handleRequestApproval(request, true)}
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                      onClick={() => handleRequestApproval(request, false)}
-                    >
-                      <XCircle className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {pendingRequests.length === 0 && (
-                <p className="text-gray-400 text-center">No pending requests</p>
-              )}
+              <div className="text-white text-sm truncate max-w-[200px]">
+                {currentProfile.bio || "Add a bio..."}
+              </div>
             </div>
-          </>
+            <ProfileEditor
+              pairId={currentProfile.id}
+              currentBio={currentProfile.bio || ""}
+              photo1Url={currentProfile.photo1_url}
+              photo2Url={currentProfile.photo2_url}
+              onUpdate={fetchCurrentProfile}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 relative">
+        {showMatches ? (
+          <div className="absolute inset-0 bg-black">
+            <div className="flex items-center p-4 border-b border-white/10">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMatches(false)}
+                className="text-white"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <h2 className="text-white text-lg ml-2">Your Matches</h2>
+            </div>
+            <MatchesList 
+              onClose={() => setShowMatches(false)}
+              currentPairId={currentProfile?.id || ''}
+            />
+          </div>
         ) : (
-          !showRequestForm ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Enter access code"
-                  value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  pattern="\d{6}"
-                  className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70"
-                />
-                <Button
-                  className="w-full"
-                  onClick={handleSubmit}
-                  disabled={loading || !code || code.length !== 6}
-                >
-                  {loading ? "Checking..." : "Continue"}
-                </Button>
+          <>
+            {profiles.length > 0 && (
+              <div className="relative h-full p-4">
+                {profiles.map((profile, index) => (
+                  <SwipeCard
+                    key={profile.id}
+                    pair={mapProfileToPair(profile)}
+                    dragPosition={{ x: 0, y: 0 }}
+                    threshold={100}
+                  />
+                ))}
+                <SwipeActions onSwipe={handleSwipe} />
               </div>
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  className="text-gray-400 hover:text-white"
-                  onClick={() => setShowRequestForm(true)}
-                >
-                  Request Access
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <Input
-                type="text"
-                placeholder="Instagram handle"
-                value={instagram}
-                onChange={e => setInstagram(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <Input
-                type="text"
-                placeholder="University"
-                value={university}
-                onChange={e => setUniversity(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <div className="space-y-2">
-                <Button
-                  className="w-full"
-                  onClick={handleAccessRequest}
-                  disabled={loading}
-                >
-                  {loading ? "Sending..." : "Submit Request"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-gray-400 hover:text-white"
-                  onClick={() => {
-                    setShowRequestForm(false);
-                    setEmail("");
-                    setInstagram("");
-                    setUniversity("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )
+            )}
+          </>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default Index;
