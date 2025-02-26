@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,15 +87,20 @@ export default function Index() {
     setLoading(true);
 
     try {
-      const { error: functionError } = await supabase.functions.invoke('handle-access', {
-        body: {
-          email,
-          instagram,
-          university
-        }
-      });
+      // Directly insert into access_requests table instead of using the edge function
+      const { error } = await supabase
+        .from('access_requests')
+        .insert([
+          {
+            email,
+            instagram,
+            university,
+            approval_token: crypto.randomUUID(),
+            status: 'pending'
+          }
+        ]);
 
-      if (functionError) throw functionError;
+      if (error) throw error;
       
       toast({
         title: "Request Sent Successfully",
