@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,37 +9,86 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { email } = await req.json();
-    console.log("Received request for email:", email);
+    console.log("Received request to send referral to:", email);
 
-    const apiKey = Deno.env.get("RESEND_API_KEY");
-    if (!apiKey) {
-      throw new Error("Missing Resend API key");
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Generate a random 6-character code
+    const code = Array.from(
+      { length: 6 },
+      () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
+    ).join("");
+
+    console.log("Generated referral code:", code);
+
+    // Store the code in the database
+    const { error: dbError } = await supabase
+      .from("referral_codes")
+      .insert({
+        code,
+        email_to: email,
+        created_by_email: "support@inntro.us",
+        email_sent: false,
+      });
+
+    if (dbError) {
+      console.error("Database error:", dbError);
+      throw dbError;
     }
 
-    const resend = new Resend(apiKey);
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-    const { data, error } = await resend.emails.send({
-      from: "onboarding@resend.dev",
+    // Send the email
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: "Inntro Social <onboarding@resend.dev>",
       to: email,
-      subject: "Welcome to Inntro",
-      text: "Thanks for your interest! We'll review your request and get back to you soon.",
+      subject: "Your Inntro Social Invitation Code",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #3B82F6;">Welcome to Inntro Social!</h1>
+          <p>You've been invited to join Inntro Social. Here's your access code:</p>
+          <div style="background-color: #1F2937; color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
+            ${code}
+          </div>
+          <p>Enter this code on the Inntro Social app to get started.</p>
+          <p style="color: #EC4899;">Dating isn't awkward anymore!</p>
+        </div>
+      `,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
-      throw error;
+    if (emailError) {
+      console.error("Email error:", emailError);
+      throw emailError;
     }
 
-    console.log("Email sent successfully:", data);
-    
+    console.log("Email sent successfully:", emailData);
+
+    // Update the database to mark email as sent
+    const { error: updateError } = await supabase
+      .from("referral_codes")
+      .update({ email_sent: true })
+      .eq("code", code);
+
+    if (updateError) {
+      console.error("Error updating email_sent status:", updateError);
+    }
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true,
+        message: "Invitation sent successfully" 
+      }),
       { 
         headers: { 
           "Content-Type": "application/json",
@@ -47,19 +97,18 @@ serve(async (req) => {
       }
     );
 
-  } catch (err) {
-    console.error("Function error:", err);
-    
+  } catch (error) {
+    console.error("Function error:", error);
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         success: false,
-        error: err.message
+        error: error.message 
       }),
       { 
         status: 500,
-        headers: {
+        headers: { 
           "Content-Type": "application/json",
-          ...corsHeaders
+          ...corsHeaders 
         }
       }
     );
