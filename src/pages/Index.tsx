@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { CheckCircle2, XCircle } from "lucide-react";
+
+const ADMIN_CODE = "ADMIN123"; // This is the special code for admin access
 
 export default function Index() {
   const [code, setCode] = useState("");
@@ -14,70 +17,8 @@ export default function Index() {
   const [university, setUniversity] = useState("");
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    checkAdminStatus();
-  }, []);
-
-  const checkAdminStatus = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.email === 'support@inntro.us') {
-      setIsAdmin(true);
-      fetchPendingRequests();
-    }
-  };
-
-  const handleAdminLogin = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email: adminEmail,
-        password: adminPassword,
-      });
-
-      if (error) throw error;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.email === 'support@inntro.us') {
-        setIsAdmin(true);
-        fetchPendingRequests();
-        setShowAdminLogin(false);
-        toast({
-          title: "Logged in successfully",
-          description: "Welcome back, admin!"
-        });
-      } else {
-        await supabase.auth.signOut();
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "This account doesn't have admin privileges"
-        });
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAdmin(false);
-    setPendingRequests([]);
-    toast({
-      title: "Logged out successfully"
-    });
-  };
 
   const fetchPendingRequests = async () => {
     const { data, error } = await supabase
@@ -135,9 +76,7 @@ export default function Index() {
   };
 
   const handleAccessRequest = async () => {
-    console.log('handleAccessRequest called');
     if (!email || !instagram || !university) {
-      console.log('Missing fields:', { email, instagram, university });
       toast({
         variant: "destructive",
         title: "Error",
@@ -147,7 +86,6 @@ export default function Index() {
     }
 
     setLoading(true);
-    console.log('Attempting to submit access request:', { email, instagram, university });
 
     try {
       const { error: functionError } = await supabase.functions.invoke('handle-access', {
@@ -158,12 +96,7 @@ export default function Index() {
         }
       });
 
-      if (functionError) {
-        console.error('Error calling edge function:', functionError);
-        throw functionError;
-      }
-
-      console.log('Access request submitted successfully');
+      if (functionError) throw functionError;
       
       toast({
         title: "Request Sent Successfully",
@@ -175,7 +108,6 @@ export default function Index() {
       setInstagram("");
       setUniversity("");
     } catch (error: any) {
-      console.error('Error details:', error);
       toast({
         variant: "destructive",
         title: "Error Submitting Request",
@@ -195,8 +127,21 @@ export default function Index() {
       });
       return;
     }
+
     setLoading(true);
     try {
+      // Check if it's the admin code
+      if (code === ADMIN_CODE) {
+        setIsAdmin(true);
+        await fetchPendingRequests();
+        toast({
+          title: "Admin Access Granted",
+          description: "Welcome, admin!"
+        });
+        return;
+      }
+
+      // If not admin code, check for regular access code
       const { data, error } = await supabase
         .from('referral_codes')
         .select()
@@ -236,85 +181,53 @@ export default function Index() {
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2 text-blue-500">Inntro Social</h1>
           <p className="text-pink-400">&quot;double dates&quot;</p>
-          {!isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 text-gray-400 hover:text-white"
-              onClick={() => setShowAdminLogin(!showAdminLogin)}
-            >
-              {showAdminLogin ? "← Back" : "Admin Login"}
-            </Button>
-          )}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 text-gray-400 hover:text-white"
-              onClick={handleAdminLogout}
-            >
-              Logout
-            </Button>
-          )}
         </div>
 
-        {showAdminLogin ? (
-          <div className="space-y-4">
-            <Input
-              type="email"
-              placeholder="Admin Email"
-              value={adminEmail}
-              onChange={e => setAdminEmail(e.target.value)}
-              className="bg-gray-900 text-white placeholder:text-white/70"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={adminPassword}
-              onChange={e => setAdminPassword(e.target.value)}
-              className="bg-gray-900 text-white placeholder:text-white/70"
-            />
-            <Button
-              className="w-full"
-              onClick={handleAdminLogin}
-              disabled={loading || !adminEmail || !adminPassword}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-          </div>
-        ) : isAdmin ? (
-          <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
-            <h2 className="text-white font-semibold">Pending Requests ({pendingRequests.length})</h2>
-            {pendingRequests.map((request) => (
-              <div key={request.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded">
-                <div className="text-sm text-white">
-                  <div>{request.email}</div>
-                  <div className="text-gray-400">{request.instagram} - {request.university}</div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                    onClick={() => handleRequestApproval(request, true)}
-                  >
-                    <CheckCircle2 className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                    onClick={() => handleRequestApproval(request, false)}
-                  >
-                    <XCircle className="h-5 w-5" />
-                  </Button>
-                </div>
+        {isAdmin ? (
+          <>
+            <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h2 className="text-white font-semibold">Pending Requests ({pendingRequests.length})</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsAdmin(false)}
+                >
+                  Exit Admin
+                </Button>
               </div>
-            ))}
-            {pendingRequests.length === 0 && (
-              <p className="text-gray-400 text-center">No pending requests</p>
-            )}
-          </div>
+              {pendingRequests.map((request) => (
+                <div key={request.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded">
+                  <div className="text-sm text-white">
+                    <div>{request.email}</div>
+                    <div className="text-gray-400">{request.instagram} - {request.university}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                      onClick={() => handleRequestApproval(request, true)}
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                      onClick={() => handleRequestApproval(request, false)}
+                    >
+                      <XCircle className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {pendingRequests.length === 0 && (
+                <p className="text-gray-400 text-center">No pending requests</p>
+              )}
+            </div>
+          </>
         ) : (
           !showRequestForm ? (
             <div className="space-y-4">
