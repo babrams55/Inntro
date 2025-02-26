@@ -117,9 +117,11 @@ const ProfileSetup = () => {
       if (photo1) {
         const fileExt = photo1.name.split('.').pop();
         const fileName = `${friendPair.id}-photo1.${fileExt}`;
-        await supabase.storage
+        const { error: uploadError1 } = await supabase.storage
           .from('profile-photos')
           .upload(fileName, photo1);
+
+        if (uploadError1) throw uploadError1;
 
         const { data: { publicUrl: photo1Url } } = supabase.storage
           .from('profile-photos')
@@ -134,9 +136,11 @@ const ProfileSetup = () => {
       if (photo2) {
         const fileExt = photo2.name.split('.').pop();
         const fileName = `${friendPair.id}-photo2.${fileExt}`;
-        await supabase.storage
+        const { error: uploadError2 } = await supabase.storage
           .from('profile-photos')
           .upload(fileName, photo2);
+
+        if (uploadError2) throw uploadError2;
 
         const { data: { publicUrl: photo2Url } } = supabase.storage
           .from('profile-photos')
@@ -179,8 +183,6 @@ const ProfileSetup = () => {
       setLoading(false);
     }
   };
-
-  const isComplete = photo1 && photo2 && bio.trim().length > 0 && email1 && email2 && gender;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
@@ -294,12 +296,16 @@ const ProfileSetup = () => {
             />
           </div>
 
-          <Textarea
-            placeholder="Write a short bio about you both..."
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="bg-gray-900 border-transparent text-white placeholder:text-white/70 min-h-[100px]"
-          />
+          {/* Bio textarea */}
+          <div className="space-y-2">
+            <label className="text-white text-sm">Write about yourselves</label>
+            <Textarea
+              placeholder="Tell others about you both..."
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="bg-gray-900 border-transparent text-white placeholder:text-white/70 min-h-[100px]"
+            />
+          </div>
 
           <div className="space-y-3">
             {/* Instagram Handles */}
@@ -338,15 +344,15 @@ const ProfileSetup = () => {
 
       <Button
         onClick={handleSubmit}
-        disabled={loading || !isComplete}
+        disabled={loading || !photo1 || !photo2 || !bio || !email1 || !email2 || !gender}
         size="icon"
         className={`rounded-full w-16 h-16 transition-all duration-300 ${
-          isComplete 
+          photo1 && photo2 && bio && email1 && email2 && gender
             ? 'bg-green-500 hover:bg-green-400 scale-100 opacity-100' 
             : 'bg-gray-700 scale-90 opacity-50'
         }`}
       >
-        <CheckCircle className={`w-8 h-8 ${isComplete ? 'text-white' : 'text-gray-400'}`} />
+        <CheckCircle className="w-8 h-8 text-white" />
       </Button>
     </div>
   );
