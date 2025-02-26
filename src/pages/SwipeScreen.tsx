@@ -1,197 +1,170 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, PanInfo } from "framer-motion";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { SwipeHeader } from "@/components/SwipeHeader";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SwipeCard } from "@/components/SwipeCard";
 import { SwipeActions } from "@/components/SwipeActions";
+import { SwipeHeader } from "@/components/SwipeHeader";
 import { MatchesList } from "@/components/MatchesList";
-import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
-import type { Database } from "@/integrations/supabase/types";
 import { ProfileEditor } from "@/components/ProfileEditor";
-
-type FriendPair = Database['public']['Tables']['friend_pairs']['Row'];
-
-type Match = {
-  id: string;
-  created_at: string;
-  pair1_id: string;
-  pair2_id: string;
-  status: string;
-  pair1?: FriendPair;
-  pair2?: FriendPair;
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const SwipeScreen = () => {
-  const [currentPairIndex, setCurrentPairIndex] = useState(0);
-  const [swipedPairs, setSwipedPairs] = useState<{ [key: number]: SwipeDirection }>({});
-  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const navigate = useNavigate();
+  const [showMatches, setShowMatches] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [referralCode, setReferralCode] = useState("");
   const [referralCopied, setReferralCopied] = useState(false);
-  const [latestMatch, setLatestMatch] = useState<Match | null>(null);
-  const [showMatches, setShowMatches] = useState(false);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  const userGender: Gender = "M";
-  const currentPairId = "pair-id"; // TODO: Get this from auth context
-  const filteredPairs = getMatchingPairs(userGender);
-
-  const generateNewCode = async () => {
-    try {
-      const newCode = `CODE${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      setReferralCode(newCode);
-      setReferralCopied(false);
-    } catch (error) {
-      console.error('Error generating code:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate referral code"
-      });
-    }
-  };
 
   useEffect(() => {
-    const fetchLatestMatch = async () => {
-      const { data, error } = await supabase
-        .from('pair_matches')
-        .select(`
-          *,
-          pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
-          pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
-        `)
-        .or(`pair1_id.eq.${currentPairId},pair2_id.eq.${currentPairId}`)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    fetchCurrentProfile();
+    loadProfiles();
+    generateNewCode();
+  }, []);
 
-      if (error) {
-        console.error('Error fetching latest match:', error);
-      } else if (data) {
-        setLatestMatch(data as Match);
-      }
-    };
+  const fetchCurrentProfile = async () => {
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      navigate('/');
+      return;
+    }
 
-    fetchLatestMatch();
+    const { data, error } = await supabase
+      .from('friend_pairs')
+      .select('*')
+      .eq('id', currentPairId)
+      .single();
 
-    const fetchCurrentProfile = async () => {
-      const currentPairId = localStorage.getItem('currentPairId');
-      if (!currentPairId) return;
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return;
+    }
 
+    setCurrentProfile(data);
+  };
+
+  const loadProfiles = async () => {
+    setLoading(true);
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      console.error('No pair ID found');
+      setLoading(false);
+      return;
+    }
+
+    try {
       const { data, error } = await supabase
         .from('friend_pairs')
         .select('*')
-        .eq('id', currentPairId)
-        .single();
+        .neq('id', currentPairId)
+        .eq('city', localStorage.getItem("selectedCity") || "NYC")
+        .limit(10);
+
+      if (error) throw error;
+
+      setProfiles(data || []);
+    } catch (error: any) {
+      console.error("Error loading profiles:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSwipe = async (direction: 'right' | 'left') => {
+    if (!currentProfile) return;
+
+    const swipedProfile = profiles[currentIndex];
+    if (!swipedProfile) return;
+
+    if (direction === 'right') {
+      // Record the like
+      const { error } = await supabase
+        .from('pair_likes')
+        .insert([{ from_pair_id: currentProfile.id, to_pair_id: swipedProfile.id }]);
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error recording like:", error);
         return;
       }
 
-      setCurrentProfile(data);
-    };
+      // Check for a mutual like (match)
+      const { data: existingLike, error: matchError } = await supabase
+        .from('pair_likes')
+        .select('*')
+        .eq('from_pair_id', swipedProfile.id)
+        .eq('to_pair_id', currentProfile.id)
+        .single();
 
-    fetchCurrentProfile();
-  }, [currentPairId]);
+      if (matchError) {
+        console.error("Error checking for match:", matchError);
+        return;
+      }
 
-  const handleSwipe = async (direction: SwipeDirection) => {
-    const swipedPair = filteredPairs[currentPairIndex];
-    
-    setSwipedPairs(prev => ({
-      ...prev,
-      [swipedPair.id]: direction
-    }));
-
-    if (direction === 'like') {
-      try {
-        const { error: likeError } = await supabase
-          .from('pair_likes')
-          .insert({
-            from_pair_id: currentPairId,
-            to_pair_id: `other-${swipedPair.id}` // TODO: Replace with actual pair ID
-          });
-
-        if (likeError) throw likeError;
-
-        const { data: matchData, error: matchError } = await supabase
+      if (existingLike) {
+        // Create a match
+        const { error: createMatchError } = await supabase
           .from('pair_matches')
-          .select(`
-            *,
-            pair1:friend_pairs!pair_matches_pair1_id_fkey(*),
-            pair2:friend_pairs!pair_matches_pair2_id_fkey(*)
-          `)
-          .or(`and(pair1_id.eq.${currentPairId},pair2_id.eq.other-${swipedPair.id}),and(pair1_id.eq.other-${swipedPair.id},pair2_id.eq.${currentPairId})`)
-          .maybeSingle();
+          .insert([{ pair1_id: currentProfile.id, pair2_id: swipedProfile.id, status: 'active' }]);
 
-        if (matchError) throw matchError;
-
-        if (matchData) {
-          setLatestMatch(matchData as Match);
-          toast({
-            title: "It's a match! 🎉",
-            description: "Start chatting with your new match!",
-            action: (
-              <Button 
-                onClick={() => navigate('/chat', { 
-                  state: { 
-                    matchId: matchData.id,
-                    currentPairId,
-                    otherPairId: matchData.pair1_id === currentPairId ? matchData.pair2_id : matchData.pair1_id
-                  }
-                })}
-              >
-                Open Chat
-              </Button>
-            )
-          });
+        if (createMatchError) {
+          console.error("Error creating match:", createMatchError);
+          return;
         }
-      } catch (error) {
-        console.error('Error handling like:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to process your like"
-        });
       }
     }
 
-    if (currentPairIndex < filteredPairs.length - 1) {
-      setCurrentPairIndex(prev => prev + 1);
-      setDragPosition({ x: 0, y: 0 });
-    }
-  };
-
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD) {
-      handleSwipe(info.offset.x > 0 ? 'like' : 'pass');
+    // Move to the next profile
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < profiles.length) {
+      setCurrentIndex(nextIndex);
     } else {
-      setDragPosition({ x: 0, y: 0 });
+      // Optionally, reload profiles or indicate no more profiles
+      loadProfiles();
+      setCurrentIndex(0);
     }
   };
 
-  const navigateToLatestChat = () => {
-    if (!latestMatch || !latestMatch.pair1 || !latestMatch.pair2) return;
-
-    const otherPair = latestMatch.pair1_id === currentPairId 
-      ? latestMatch.pair2
-      : latestMatch.pair1;
-
-    navigate('/chat', {
-      state: {
-        matchId: latestMatch.id,
-        currentPairId,
-        otherPairId: otherPair.id
-      }
-    });
+  const generateNewCode = async () => {
+    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setReferralCode(newCode);
+  
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      console.error('No pair ID found');
+      return;
+    }
+  
+    const { data: existingReferral, error: selectError } = await supabase
+      .from('pair_referrals')
+      .select('*')
+      .eq('inviter_pair_id', currentPairId)
+      .eq('used', false)
+      .single();
+  
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error("Error checking existing referral:", selectError);
+      return;
+    }
+  
+    if (existingReferral) {
+      setReferralCode(existingReferral.referral_code);
+      return;
+    }
+  
+    const expires_at = new Date();
+    expires_at.setDate(expires_at.getDate() + 7);
+  
+    const { error: insertError } = await supabase
+      .from('pair_referrals')
+      .insert([{ inviter_pair_id: currentPairId, referral_code: newCode, expires_at: expires_at.toISOString(), used: false }]);
+  
+    if (insertError) {
+      console.error("Error creating referral code:", insertError);
+    }
   };
-
-  const currentPair = filteredPairs[currentPairIndex];
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -201,63 +174,79 @@ const SwipeScreen = () => {
         generateNewCode={generateNewCode}
         onChatClick={() => setShowMatches(true)}
       />
-
+      
+      {/* Profile Editor Section */}
       {currentProfile && (
-        <div className="px-4 py-2">
-          <ProfileEditor
-            pairId={currentProfile.id}
-            currentBio={currentProfile.bio}
-            photo1Url={currentProfile.photo1_url}
-            photo2Url={currentProfile.photo2_url}
-            onUpdate={() => window.location.reload()}
-          />
+        <div className="px-4 py-3 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex -space-x-2">
+                {currentProfile.photo1_url && (
+                  <img 
+                    src={currentProfile.photo1_url} 
+                    alt="Your photo" 
+                    className="w-10 h-10 rounded-full border-2 border-black"
+                  />
+                )}
+                {currentProfile.photo2_url && (
+                  <img 
+                    src={currentProfile.photo2_url} 
+                    alt="Friend's photo" 
+                    className="w-10 h-10 rounded-full border-2 border-black"
+                  />
+                )}
+              </div>
+              <div className="text-white text-sm truncate max-w-[200px]">
+                {currentProfile.bio || "Add a bio..."}
+              </div>
+            </div>
+            <ProfileEditor
+              pairId={currentProfile.id}
+              currentBio={currentProfile.bio || ""}
+              photo1Url={currentProfile.photo1_url}
+              photo2Url={currentProfile.photo2_url}
+              onUpdate={fetchCurrentProfile}
+            />
+          </div>
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center p-4">
-        <AnimatePresence mode="wait">
-          {currentPair && (
-            <motion.div
-              key={currentPair.id}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragSnapToOrigin={true}
-              onDragEnd={handleDragEnd}
-              animate={{
-                x: dragPosition.x,
-                rotate: dragPosition.x * 0.03,
-                scale: 1
-              }}
-              initial={{ scale: 0.95, opacity: 0 }}
-              exit={{ 
-                x: dragPosition.x < 0 ? -500 : 500,
-                opacity: 0,
-                transition: { duration: 0.2 }
-              }}
-              transition={{ type: "spring", bounce: 0.3 }}
-              className="w-full max-w-sm bg-gray-900 rounded-3xl overflow-hidden shadow-xl cursor-grab active:cursor-grabbing"
-              whileDrag={{ scale: 1.05 }}
-            >
-              <SwipeCard
-                pair={currentPair}
-                dragPosition={dragPosition}
-                threshold={SWIPE_THRESHOLD}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <SwipeActions onSwipe={handleSwipe} />
-
-      <AnimatePresence>
-        {showMatches && (
-          <MatchesList 
-            currentPairId={currentPairId} 
-            onClose={() => setShowMatches(false)} 
-          />
+      <div className="flex-1 relative">
+        {showMatches ? (
+          <div className="absolute inset-0 bg-black">
+            <div className="flex items-center p-4 border-b border-white/10">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMatches(false)}
+                className="text-white"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <h2 className="text-white text-lg ml-2">Your Matches</h2>
+            </div>
+            <MatchesList onClose={() => setShowMatches(false)} />
+          </div>
+        ) : (
+          <>
+            {profiles.length > 0 && (
+              <div className="relative h-full p-4">
+                {profiles.map((profile, index) => (
+                  <SwipeCard
+                    key={profile.id}
+                    profile={profile}
+                    isActive={index === currentIndex}
+                  />
+                ))}
+                <SwipeActions
+                  onSwipe={(direction) => handleSwipe(direction)}
+                  disabled={loading || profiles.length === 0}
+                />
+              </div>
+            )}
+          </>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 };
