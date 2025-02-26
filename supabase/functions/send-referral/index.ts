@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -10,14 +11,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
 interface ReferralEmailRequest {
-  code: string;
   email: string;
-  requestData?: {
-    email: string;
-    instagram: string;
-    university: string;
-  };
+  code: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -26,12 +33,31 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { code, email, requestData }: ReferralEmailRequest = await req.json();
-    console.log("Attempting to send email to:", email);
+    const { email, code }: ReferralEmailRequest = await req.json();
+    console.log("Processing referral request for:", email);
 
-    // If this is an access request
-    if (code === "REQUEST" && requestData) {
-      console.log("Processing access request for:", requestData.email);
+    // If this is a new access request
+    if (code === "REQUEST") {
+      console.log("Creating new access request for:", email);
+      
+      // Generate a unique approval token
+      const approvalToken = crypto.randomUUID();
+
+      // Create access request in the database
+      const { error: dbError } = await supabase
+        .from('access_requests')
+        .insert({
+          email,
+          status: 'pending',
+          approval_token: approvalToken
+        });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        throw new Error("Failed to create access request");
+      }
+
+      // Send notification email to admin
       const emailResponse = await resend.emails.send({
         from: "Inntro Social <support@inntro.us>",
         to: ["support@inntro.us"],
@@ -39,25 +65,31 @@ const handler = async (req: Request): Promise<Response> => {
         html: `
           <div style="font-family: sans-serif; padding: 20px;">
             <h2>New Access Request</h2>
-            <p><strong>Email:</strong> ${requestData.email}</p>
-            <p><strong>Instagram:</strong> ${requestData.instagram}</p>
-            <p><strong>University:</strong> ${requestData.university}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p>
+              <a href="${Deno.env.get("APP_URL")}/admin/approve/${approvalToken}" style="color: #4CAF50;">Approve</a>
+              or
+              <a href="${Deno.env.get("APP_URL")}/admin/reject/${approvalToken}" style="color: #f44336;">Reject</a>
+            </p>
           </div>
         `,
       });
       
-      console.log("Access request email sent successfully:", emailResponse);
+      console.log("Admin notification email sent:", emailResponse);
       
-      return new Response(JSON.stringify(emailResponse), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
+      return new Response(
+        JSON.stringify({ message: "Request received and pending approval" }), 
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
     }
 
-    // Regular referral code email
+    // For sending actual referral codes
     console.log("Sending referral code email to:", email);
     const emailResponse = await resend.emails.send({
       from: "Inntro Social <support@inntro.us>",
@@ -93,7 +125,9 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-referral function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || "Failed to process referral request" 
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
