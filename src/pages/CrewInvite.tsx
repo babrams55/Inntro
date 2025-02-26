@@ -34,17 +34,23 @@ const CrewInvite = () => {
     setLoading(true);
 
     try {
-      console.log("Sending invite request for:", email);
+      // Test function accessibility first
+      console.log("About to invoke send-referral function for:", email);
       
       const { data, error } = await supabase.functions.invoke("send-referral", {
-        body: { email }
+        body: { email },
+        // Add headers to ensure proper CORS handling
+        headers: {
+          "Content-Type": "application/json",
+        }
       });
 
-      console.log("Function response:", { data, error });
+      // Log raw response for debugging
+      console.log("Raw function response:", { data, error });
 
       if (error) {
-        console.error("Function error:", error);
-        throw error;
+        console.error("Edge function error:", error);
+        throw new Error(`Failed to send invitation: ${error.message}`);
       }
 
       if (!data?.success) {
@@ -60,7 +66,7 @@ const CrewInvite = () => {
       setEmail("");
       navigate("/city-selection");
     } catch (error: any) {
-      console.error("Error details:", error);
+      console.error("Full error details:", error);
       toast({
         variant: "destructive",
         title: "Error",
