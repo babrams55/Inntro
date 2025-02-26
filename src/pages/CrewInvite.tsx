@@ -10,6 +10,7 @@ const CrewInvite = () => {
   const [loading, setLoading] = useState(false);
 
   const handleInvite = async () => {
+    // Validate email
     if (!email) {
       toast({
         variant: "destructive",
@@ -19,12 +20,22 @@ const CrewInvite = () => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a valid email address",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.functions.invoke('send-referral', {
         body: { 
           email,
-          code: "REQUEST" // This will be replaced with actual code in the function
+          code: "REQUEST"
         }
       });
 
@@ -40,14 +51,15 @@ const CrewInvite = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send invitation. Please try again.",
+        description: error.message || "Failed to send invitation. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  return <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2 text-blue-500">Invite ur sidekick.</h1>
@@ -71,7 +83,8 @@ const CrewInvite = () => {
           <p className="text-pink-400 text-center mt-4">Dating isn't awkward anymore</p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default CrewInvite;
