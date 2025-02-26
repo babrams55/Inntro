@@ -43,6 +43,27 @@ const ProfileSetup = () => {
     }
   };
 
+  const validateEmails = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email1) || !emailRegex.test(email2)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter valid email addresses for both people",
+      });
+      return false;
+    }
+    if (email1 === email2) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Emails",
+        description: "The email addresses must be different",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (!photo1 || !photo2 || !bio || !email1 || !email2 || !gender) {
       toast({
@@ -52,10 +73,31 @@ const ProfileSetup = () => {
       });
       return;
     }
+
+    if (!validateEmails()) {
+      return;
+    }
     
     setLoading(true);
     try {
-      // Create the friend pair in the database
+      // First check if either email is already in a friend pair
+      const { data: existingPairs, error: checkError } = await supabase
+        .from('friend_pairs')
+        .select('*')
+        .or(`user1_email.eq.${email1},user1_email.eq.${email2},user2_email.eq.${email1},user2_email.eq.${email2}`);
+
+      if (checkError) throw checkError;
+
+      if (existingPairs && existingPairs.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Email already registered",
+          description: "One or both emails are already registered in a friend pair",
+        });
+        return;
+      }
+
+      // Create the friend pair
       const { data: friendPair, error: friendPairError } = await supabase
         .from('friend_pairs')
         .insert({
@@ -63,17 +105,18 @@ const ProfileSetup = () => {
           user2_email: email2,
           gender,
           bio,
-          city: "pending", // Temporary value until user sets it in the next step
+          city: "pending",
           status: 'active'
         })
         .select()
         .single();
 
       if (friendPairError) {
+        console.error("Error creating friend pair:", friendPairError);
         throw friendPairError;
       }
 
-      // TODO: Handle photo uploads to storage when configured
+      // Upload photos logic will be implemented later
       console.log("Created friend pair:", friendPair);
       
       toast({
@@ -81,14 +124,14 @@ const ProfileSetup = () => {
         description: "Your profile has been set up successfully.",
       });
 
-      // Navigate to swipe screen after successful submission
-      navigate("/swipe");
+      // Navigate to city selection after successful submission
+      navigate("/city-selection");
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: error.message || "Failed to save profile. Please try again.",
       });
     } finally {
       setLoading(false);
