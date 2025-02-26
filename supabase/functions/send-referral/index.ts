@@ -45,14 +45,14 @@ serve(async (req) => {
     ).join("");
     console.log("Generated referral code:", code);
 
-    // 5. Store code in database
+    // 5. Store code in database first
     console.log("Storing referral code in database...");
     const { error: dbError } = await supabase
       .from("referral_codes")
       .insert({
         code,
         email_to: email,
-        created_by_email: "support@inntro.us",
+        created_by_email: "onboarding@resend.dev", // Using Resend's test email
         email_sent: false,
       });
 
@@ -61,13 +61,13 @@ serve(async (req) => {
       throw dbError;
     }
 
-    // 6. Send email
+    // 6. Send email using Resend's test email
     console.log("Initializing Resend...");
     const resend = new Resend(resendApiKey);
 
     console.log("Sending email...");
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Inntro Social <onboarding@resend.dev>",
+      from: "Inntro <onboarding@resend.dev>", // Using Resend's test email
       to: email,
       subject: "Your Inntro Social Invitation Code",
       html: `
@@ -99,14 +99,14 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating email_sent status:", updateError);
-      // Don't throw here as email was sent successfully
     }
 
     return new Response(
       JSON.stringify({ 
         success: true,
         message: "Invitation sent successfully",
-        code // Include code in response for debugging
+        code,
+        emailData // Include email response for debugging
       }),
       { 
         headers: { 
