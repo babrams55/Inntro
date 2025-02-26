@@ -3,9 +3,8 @@ project_id = "oqlugmpkybpjehakjbls"
 
 [api]
 enabled = true
-[api.schema]
-strict = false
 
 [functions]
 [functions.send-referral]
 verify_jwt = false
+
