@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AnimatePresence, PanInfo } from "framer-motion";
 import { motion } from "framer-motion";
@@ -12,6 +11,7 @@ import { SwipeActions } from "@/components/SwipeActions";
 import { MatchesList } from "@/components/MatchesList";
 import { SWIPE_THRESHOLD, mockPairs, SwipeDirection, getMatchingPairs, Gender } from "@/utils/swipeUtils";
 import type { Database } from "@/integrations/supabase/types";
+import { ProfileEditor } from "@/components/ProfileEditor";
 
 type FriendPair = Database['public']['Tables']['friend_pairs']['Row'];
 
@@ -33,6 +33,7 @@ const SwipeScreen = () => {
   const [referralCopied, setReferralCopied] = useState(false);
   const [latestMatch, setLatestMatch] = useState<Match | null>(null);
   const [showMatches, setShowMatches] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -77,6 +78,26 @@ const SwipeScreen = () => {
     };
 
     fetchLatestMatch();
+
+    const fetchCurrentProfile = async () => {
+      const currentPairId = localStorage.getItem('currentPairId');
+      if (!currentPairId) return;
+
+      const { data, error } = await supabase
+        .from('friend_pairs')
+        .select('*')
+        .eq('id', currentPairId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
+      setCurrentProfile(data);
+    };
+
+    fetchCurrentProfile();
   }, [currentPairId]);
 
   const handleSwipe = async (direction: SwipeDirection) => {
@@ -180,6 +201,18 @@ const SwipeScreen = () => {
         generateNewCode={generateNewCode}
         onChatClick={() => setShowMatches(true)}
       />
+
+      {currentProfile && (
+        <div className="px-4 py-2">
+          <ProfileEditor
+            pairId={currentProfile.id}
+            currentBio={currentProfile.bio}
+            photo1Url={currentProfile.photo1_url}
+            photo2Url={currentProfile.photo2_url}
+            onUpdate={() => window.location.reload()}
+          />
+        </div>
+      )}
 
       <div className="flex-1 flex items-center justify-center p-4">
         <AnimatePresence mode="wait">

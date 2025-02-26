@@ -42,10 +42,27 @@ const CrewInvite = () => {
     setLoading(true);
 
     try {
+      // Create the pair_referrals record
+      const { data: referralData, error: referralError } = await supabase
+        .from('pair_referrals')
+        .insert({
+          referral_code: Array.from({ length: 6 }, () => 
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
+          ).join(''),
+          inviter_pair_id: null // Will be updated after profile setup
+        })
+        .select()
+        .single();
+
+      if (referralError) throw referralError;
+
       console.log("About to invoke send-referral function for:", email);
       
       const { data, error } = await supabase.functions.invoke("send-referral", {
-        body: { email },
+        body: { 
+          email,
+          referralCode: referralData.referral_code
+        },
         headers: {
           "Content-Type": "application/json",
         }
@@ -62,6 +79,9 @@ const CrewInvite = () => {
         console.error("Function returned unsuccessful:", data);
         throw new Error(data?.error || "Failed to send invitation");
       }
+
+      // Store the referral code in localStorage to update it after profile setup
+      localStorage.setItem('lastReferralId', referralData.id);
 
       toast({
         title: "Success!",

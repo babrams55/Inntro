@@ -88,6 +88,8 @@ export type Database = {
           created_at: string
           gender: string
           id: string
+          photo1_url: string | null
+          photo2_url: string | null
           status: string | null
           user1_email: string
           user2_email: string
@@ -98,6 +100,8 @@ export type Database = {
           created_at?: string
           gender: string
           id?: string
+          photo1_url?: string | null
+          photo2_url?: string | null
           status?: string | null
           user1_email: string
           user2_email: string
@@ -108,6 +112,8 @@ export type Database = {
           created_at?: string
           gender?: string
           id?: string
+          photo1_url?: string | null
+          photo2_url?: string | null
           status?: string | null
           user1_email?: string
           user2_email?: string
@@ -183,6 +189,51 @@ export type Database = {
           {
             foreignKeyName: "pair_matches_pair2_id_fkey"
             columns: ["pair2_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pair_referrals: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_pair_id: string | null
+          inviter_pair_id: string | null
+          referral_code: string
+          used: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitee_pair_id?: string | null
+          inviter_pair_id?: string | null
+          referral_code: string
+          used?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitee_pair_id?: string | null
+          inviter_pair_id?: string | null
+          referral_code?: string
+          used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pair_referrals_invitee_pair_id_fkey"
+            columns: ["invitee_pair_id"]
+            isOneToOne: false
+            referencedRelation: "friend_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pair_referrals_inviter_pair_id_fkey"
+            columns: ["inviter_pair_id"]
             isOneToOne: false
             referencedRelation: "friend_pairs"
             referencedColumns: ["id"]

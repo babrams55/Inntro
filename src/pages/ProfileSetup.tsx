@@ -105,27 +105,69 @@ const ProfileSetup = () => {
           user2_email: email2,
           gender,
           bio,
-          city: "pending",
+          city: localStorage.getItem("selectedCity") || "NYC",
           status: 'active'
         })
         .select()
         .single();
 
-      if (friendPairError) {
-        console.error("Error creating friend pair:", friendPairError);
-        throw friendPairError;
+      if (friendPairError) throw friendPairError;
+
+      // Upload photos
+      if (photo1) {
+        const fileExt = photo1.name.split('.').pop();
+        const fileName = `${friendPair.id}-photo1.${fileExt}`;
+        await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, photo1);
+
+        const { data: { publicUrl: photo1Url } } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        await supabase
+          .from('friend_pairs')
+          .update({ photo1_url: photo1Url })
+          .eq('id', friendPair.id);
       }
 
-      // Upload photos logic will be implemented later
-      console.log("Created friend pair:", friendPair);
+      if (photo2) {
+        const fileExt = photo2.name.split('.').pop();
+        const fileName = `${friendPair.id}-photo2.${fileExt}`;
+        await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, photo2);
+
+        const { data: { publicUrl: photo2Url } } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        await supabase
+          .from('friend_pairs')
+          .update({ photo2_url: photo2Url })
+          .eq('id', friendPair.id);
+      }
+
+      // Update the referral with the new pair ID if this was an inviter
+      const lastReferralId = localStorage.getItem('lastReferralId');
+      if (lastReferralId) {
+        await supabase
+          .from('pair_referrals')
+          .update({ inviter_pair_id: friendPair.id })
+          .eq('id', lastReferralId);
+        
+        localStorage.removeItem('lastReferralId');
+      }
       
       toast({
         title: "Profile created!",
         description: "Your profile has been set up successfully.",
       });
 
-      // Changed navigation to go to /invite instead of /city-selection
-      navigate("/invite");
+      // Store the pair ID for future use
+      localStorage.setItem('currentPairId', friendPair.id);
+
+      navigate("/swipe");
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast({
