@@ -308,6 +308,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      handle_access_request: {
+        Args: {
+          request_id: string
+          new_status: string
+          admin_email: string
+        }
+        Returns: Json
+      }
       is_admin: {
         Args: {
           user_email: string

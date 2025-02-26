@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -47,7 +48,6 @@ const Index = () => {
         return;
       }
 
-      // Store the code in localStorage and navigate to profile setup
       localStorage.setItem('referralCode', accessCode);
       navigate('/profile-setup');
     } catch (error) {
@@ -63,11 +63,20 @@ const Index = () => {
   };
 
   const handleRequestAccess = async () => {
-    if (!email) {
+    if (!email || !university || !instagram) {
       toast({
         variant: "destructive",
-        title: "Email required",
-        description: "Please enter your email address"
+        title: "Required fields missing",
+        description: "Please fill in all required fields"
+      });
+      return;
+    }
+
+    if (!email.includes('@')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid email",
+        description: "Please enter a valid email address"
       });
       return;
     }
@@ -78,7 +87,7 @@ const Index = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         },
         body: JSON.stringify({
           email,
@@ -110,14 +119,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-blue-500">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
             Inntro Social
           </h1>
-          <p className="text-pink-500 text-xl">
-            "double dates"
+          <p className="text-pink-500 text-xl font-medium">
+            find your double date
           </p>
         </div>
 
@@ -128,25 +137,40 @@ const Index = () => {
               placeholder="Your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-gray-800/50 border-gray-700 text-white"
+              className={cn(
+                "bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500",
+                "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              )}
+              required
             />
             <Input
               type="text"
-              placeholder="University (optional)"
+              placeholder="University"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className="bg-gray-800/50 border-gray-700 text-white"
+              className={cn(
+                "bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500",
+                "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              )}
+              required
             />
             <Input
               type="text"
-              placeholder="Instagram handle (optional)"
+              placeholder="Instagram handle"
               value={instagram}
               onChange={(e) => setInstagram(e.target.value)}
-              className="bg-gray-800/50 border-gray-700 text-white"
+              className={cn(
+                "bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500",
+                "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              )}
+              required
             />
             <div className="space-y-2">
               <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className={cn(
+                  "w-full bg-gradient-to-r from-blue-500 to-purple-500",
+                  "hover:from-blue-600 hover:to-purple-600 text-white font-medium"
+                )}
                 onClick={handleRequestAccess}
                 disabled={loading}
               >
@@ -154,7 +178,7 @@ const Index = () => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
+                className="w-full text-gray-400 hover:text-white hover:bg-[#1A1A1A]"
                 onClick={() => setIsRequestingAccess(false)}
                 disabled={loading}
               >
@@ -169,11 +193,17 @@ const Index = () => {
               placeholder="Enter access code"
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value)}
-              className="bg-gray-800/50 border-gray-700 text-white"
+              className={cn(
+                "bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500",
+                "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              )}
             />
             <div className="space-y-2">
               <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className={cn(
+                  "w-full bg-gradient-to-r from-blue-500 to-purple-500",
+                  "hover:from-blue-600 hover:to-purple-600 text-white font-medium"
+                )}
                 onClick={handleAccessCode}
                 disabled={loading}
               >
@@ -181,7 +211,7 @@ const Index = () => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
+                className="w-full text-gray-400 hover:text-white hover:bg-[#1A1A1A]"
                 onClick={() => setIsRequestingAccess(true)}
                 disabled={loading}
               >
