@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-const ADMIN_CODE = "ADMIN123"; // This is the special code for admin access
+const ADMIN_CODE = "123456"; // Changed to 6 digits
 
 export default function Index() {
   const [code, setCode] = useState("");
@@ -47,7 +46,6 @@ export default function Index() {
       if (error) throw error;
 
       if (approved) {
-        // Generate referral code for approved request
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         const { error: codeError } = await supabase
           .from('referral_codes')
@@ -119,18 +117,17 @@ export default function Index() {
   };
 
   const handleSubmit = async () => {
-    if (!code) {
+    if (!code || code.length !== 6) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Please enter an access code"
+        description: "Please enter a 6-digit access code"
       });
       return;
     }
 
     setLoading(true);
     try {
-      // Check if it's the admin code
       if (code === ADMIN_CODE) {
         setIsAdmin(true);
         await fetchPendingRequests();
@@ -141,7 +138,6 @@ export default function Index() {
         return;
       }
 
-      // If not admin code, check for regular access code
       const { data, error } = await supabase
         .from('referral_codes')
         .select()
@@ -238,12 +234,13 @@ export default function Index() {
                   value={code}
                   onChange={e => setCode(e.target.value.toUpperCase())}
                   maxLength={6}
+                  pattern="\d{6}"
                   className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70"
                 />
                 <Button
                   className="w-full"
                   onClick={handleSubmit}
-                  disabled={loading || !code}
+                  disabled={loading || !code || code.length !== 6}
                 >
                   {loading ? "Checking..." : "Continue"}
                 </Button>
