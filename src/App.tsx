@@ -14,8 +14,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/profile-setup" element={<ProfileSetup />} />
+        <Route path="/city-selection" element={<CitySelection />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
         <Route path="/invite" element={<CrewInvite />} />
