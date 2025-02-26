@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-const ADMIN_CODE = "123456"; // Changed to 6 digits
+const ADMIN_CODE = "847519"; // Changed to a more random 6-digit sequence
 
 export default function Index() {
   const [code, setCode] = useState("");
