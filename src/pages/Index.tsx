@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,6 @@ export default function Index() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const navigate = useNavigate();
 
-  // Add useEffect to fetch pending requests when isAdmin changes
   useEffect(() => {
     if (isAdmin) {
       fetchPendingRequests();
@@ -71,6 +69,19 @@ export default function Index() {
           });
 
         if (codeError) throw codeError;
+
+        const emailResponse = await supabase.functions.invoke('send-approval', {
+          body: { email: request.email, code }
+        });
+
+        if (emailResponse.error) {
+          console.error('Error sending approval email:', emailResponse.error);
+          toast({
+            variant: "destructive",
+            title: "Error Sending Email",
+            description: "The request was approved but we couldn't send the email."
+          });
+        }
       }
 
       toast({
