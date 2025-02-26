@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,89 +35,6 @@ export default function Index() {
     setPendingRequests(data || []);
   };
 
-  const generateReferralCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from(
-      { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)]
-    ).join('');
-  };
-
-  const handleApproval = async (request: any, approved: boolean) => {
-    try {
-      if (approved) {
-        const code = generateReferralCode();
-        // Create referral code
-        await supabase
-          .from('referral_codes')
-          .insert({
-            code,
-            email_to: request.email,
-            email_sent: true,
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-          });
-
-        // Update request status
-        await supabase
-          .from('access_requests')
-          .update({ status: 'approved' })
-          .eq('id', request.id);
-
-        // Call the edge function to send email
-        const { error: functionError } = await supabase.functions.invoke('handle-access', {
-          body: {
-            token: request.approval_token,
-            approved: true
-          }
-        });
-
-        if (functionError) {
-          console.error('Error invoking edge function:', functionError);
-          throw new Error('Failed to send approval email');
-        }
-
-        toast({
-          title: "Access Granted",
-          description: `Generated code ${code} for ${request.email}`
-        });
-      } else {
-        // Update request status to rejected
-        await supabase
-          .from('access_requests')
-          .update({ status: 'rejected' })
-          .eq('id', request.id);
-
-        // Call the edge function to send rejection email
-        const { error: functionError } = await supabase.functions.invoke('handle-access', {
-          body: {
-            token: request.approval_token,
-            approved: false
-          }
-        });
-
-        if (functionError) {
-          console.error('Error invoking edge function:', functionError);
-          throw new Error('Failed to send rejection email');
-        }
-
-        toast({
-          title: "Access Denied",
-          description: `Rejected request from ${request.email}`
-        });
-      }
-
-      // Refresh the pending requests list
-      fetchPendingRequests();
-    } catch (error: any) {
-      console.error('Error handling approval:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to process request"
-      });
-    }
-  };
-
   const handleAccessRequest = async () => {
     console.log('handleAccessRequest called');
     if (!email || !instagram || !university) {
@@ -135,21 +51,17 @@ export default function Index() {
     console.log('Attempting to submit access request:', { email, instagram, university });
 
     try {
-      const response = await supabase
-        .from('access_requests')
-        .insert([{
+      const { error: functionError } = await supabase.functions.invoke('handle-access', {
+        body: {
           email,
           instagram,
-          university,
-          approval_token: crypto.randomUUID(),
-          status: 'pending'
-        }]);
+          university
+        }
+      });
 
-      console.log('Raw Supabase response:', response);
-
-      if (response.error) {
-        console.error('Supabase error:', response.error);
-        throw response.error;
+      if (functionError) {
+        console.error('Error calling edge function:', functionError);
+        throw functionError;
       }
 
       console.log('Access request submitted successfully');
@@ -172,6 +84,38 @@ export default function Index() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproval = async (request: any, approved: boolean) => {
+    try {
+      const { error: functionError } = await supabase.functions.invoke('handle-access', {
+        body: {
+          token: request.approval_token,
+          approved
+        }
+      });
+
+      if (functionError) {
+        throw functionError;
+      }
+
+      toast({
+        title: approved ? "Access Granted" : "Access Denied",
+        description: approved 
+          ? `Approved request from ${request.email}`
+          : `Rejected request from ${request.email}`
+      });
+
+      // Refresh the pending requests list
+      fetchPendingRequests();
+    } catch (error: any) {
+      console.error('Error handling approval:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to process request"
+      });
     }
   };
 
