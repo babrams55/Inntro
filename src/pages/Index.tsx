@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -16,6 +17,7 @@ const Index = () => {
   const [university, setUniversity] = useState("");
   const [instagram, setInstagram] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleAccessCode = async () => {
     if (!accessCode) return;
     setLoading(true);
@@ -54,6 +56,7 @@ const Index = () => {
       setLoading(false);
     }
   };
+
   const handleRequestAccess = async () => {
     if (!email || !university || !instagram) {
       toast({
@@ -63,6 +66,7 @@ const Index = () => {
       });
       return;
     }
+
     if (!email.includes('@')) {
       toast({
         variant: "destructive",
@@ -71,21 +75,19 @@ const Index = () => {
       });
       return;
     }
+
     setLoading(true);
     try {
-      const response = await fetch('/functions/v1/send-access-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('send-access-request', {
+        body: {
           email,
           university,
           instagram
-        })
+        }
       });
-      if (!response.ok) throw new Error('Failed to submit request');
+
+      if (error) throw error;
+
       toast({
         title: "Request submitted!",
         description: "We'll review your request and get back to you soon."
@@ -105,6 +107,7 @@ const Index = () => {
       setLoading(false);
     }
   };
+
   return <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
@@ -140,4 +143,5 @@ const Index = () => {
       </div>
     </div>;
 };
+
 export default Index;
