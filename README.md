@@ -1,4 +1,4 @@
-# Welcome to your Inntro
+# Welcome to Inntro
 
 ## Project info
 
