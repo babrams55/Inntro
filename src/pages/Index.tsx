@@ -26,40 +26,47 @@ export default function Index() {
       });
       return;
     }
-    
+
     setLoading(true);
     console.log('Attempting to submit access request:', { email, instagram, university });
-    
+
     try {
-      const { data, error } = await supabase
+      // First, let's verify the response directly
+      const response = await supabase
         .from('access_requests')
         .insert([{
           email,
           instagram,
           university,
-          approval_token: crypto.randomUUID()
-        }])
-        .select()
-        .single();
+          approval_token: crypto.randomUUID(),
+          status: 'pending'
+        }]);
 
-      console.log('Supabase response:', { data, error });
+      console.log('Raw Supabase response:', response);
 
-      if (error) throw error;
+      if (response.error) {
+        console.error('Supabase error:', response.error);
+        throw response.error;
+      }
 
+      console.log('Access request submitted successfully');
+      
       toast({
-        title: "Request Sent",
+        title: "Request Sent Successfully",
         description: "We'll review your request and get back to you soon!"
       });
+      
+      // Reset form and state
       setShowRequestForm(false);
       setEmail("");
       setInstagram("");
       setUniversity("");
     } catch (error: any) {
-      console.error('Error requesting access:', error);
+      console.error('Error details:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to submit request. Please try again."
+        title: "Error Submitting Request",
+        description: error.message || "Failed to submit request. Please try again."
       });
     } finally {
       setLoading(false);
