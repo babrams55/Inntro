@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,10 +90,13 @@ export default function Index() {
 
   const handleApproval = async (request: any, approved: boolean) => {
     try {
-      const { error: functionError } = await supabase.functions.invoke('handle-access', {
+      const { data, error: functionError } = await supabase.functions.invoke('handle-access', {
         body: {
           token: request.approval_token,
           approved
+        },
+        headers: {
+          Authorization: `Bearer ${supabase.auth.getSession()?.access_token || ''}`
         }
       });
 
