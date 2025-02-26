@@ -14,7 +14,7 @@ export const SwipeActions = ({ onSwipe }: SwipeActionsProps) => {
         size="lg"
         variant="outline"
         className="h-16 w-16 rounded-full border-red-500 text-red-500 hover:bg-red-500/10"
-        onClick={() => onSwipe('left')}
+        onClick={() => onSwipe('pass')}
       >
         <X className="h-8 w-8" />
       </Button>
@@ -22,7 +22,7 @@ export const SwipeActions = ({ onSwipe }: SwipeActionsProps) => {
         size="lg"
         variant="outline"
         className="h-16 w-16 rounded-full border-green-500 text-green-500 hover:bg-green-500/10"
-        onClick={() => onSwipe('right')}
+        onClick={() => onSwipe('like')}
       >
         <Heart className="h-8 w-8" />
       </Button>

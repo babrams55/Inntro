@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,21 +16,32 @@ serve(async (req) => {
   try {
     console.log("Function invoked - starting process");
     
-    const { email, referralCode } = await req.json();
-    if (!email || !referralCode) {
-      throw new Error("Email and referral code are required");
+    // 1. Verify incoming data
+    const { email } = await req.json();
+    if (!email) {
+      throw new Error("Email is required");
     }
-    
     console.log("Processing invite for email:", email);
 
+    // 2. Verify environment variables
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       console.error("RESEND_API_KEY is missing");
       throw new Error("Internal configuration error");
     }
 
+    // Initialize Resend
     const resend = new Resend(resendApiKey);
+
+    // 3. Generate referral code
+    const code = Array.from(
+      { length: 6 },
+      () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
+    ).join("");
     
+    console.log("Generated code:", code);
+
+    // 4. Send email
     console.log("Attempting to send email...");
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Inntro Social <onboarding@resend.dev>",
@@ -42,7 +52,7 @@ serve(async (req) => {
           <h1 style="color: #3B82F6;">Welcome to Inntro Social!</h1>
           <p>You've been invited to join Inntro Social. Here's your access code:</p>
           <div style="background-color: #1F2937; color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
-            ${referralCode}
+            ${code}
           </div>
           <p>Enter this code on the Inntro Social app to get started.</p>
           <p style="color: #EC4899;">Dating isn't awkward anymore!</p>
@@ -60,7 +70,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Invitation sent successfully"
+        message: "Invitation sent successfully",
+        code,
+        emailData
       }),
       { 
         headers: { 
@@ -73,13 +85,14 @@ serve(async (req) => {
   } catch (error) {
     console.error("Function error:", error);
     
+    // Return a proper error response with CORS headers
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error.message 
       }),
       { 
-        status: 200,
+        status: 200, // Important: Return 200 even for errors to avoid CORS issues
         headers: { 
           "Content-Type": "application/json",
           ...corsHeaders 
