@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +44,7 @@ serve(async (req) => {
     // 4. Send email
     console.log("Attempting to send email...");
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Inntro <onboarding@resend.dev>",
+      from: "Inntro Social <onboarding@resend.dev>",
       to: email,
       subject: "Your Inntro Social Invitation Code",
       html: `
@@ -85,13 +84,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Function error:", error);
+    
+    // Return a proper error response with CORS headers
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error.message 
       }),
       { 
-        status: 500,
+        status: 200, // Important: Return 200 even for errors to avoid CORS issues
         headers: { 
           "Content-Type": "application/json",
           ...corsHeaders 
