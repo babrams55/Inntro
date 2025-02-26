@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -130,7 +131,17 @@ const Index = () => {
               </Button>
             </div>
           </div> : <div className="space-y-4">
-            <Input type="text" placeholder="Enter access code" value={accessCode} onChange={e => setAccessCode(e.target.value)} className={cn("bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500", "focus:border-blue-500 focus:ring-1 focus:ring-blue-500")} />
+            <Input 
+              type="text" 
+              placeholder="Enter access code" 
+              value={accessCode} 
+              onChange={e => setAccessCode(e.target.value)} 
+              className={cn(
+                "bg-[#1A1A1A] border-[#2A2A2A] text-white placeholder:text-gray-500",
+                "focus:border-blue-500 focus:ring-1 focus:ring-blue-500",
+                "text-center"
+              )} 
+            />
             <div className="space-y-2">
               <Button className={cn("w-full bg-gradient-to-r from-blue-500 to-purple-500", "hover:from-blue-600 hover:to-purple-600 text-white font-medium")} onClick={handleAccessCode} disabled={loading}>
                 Continue
