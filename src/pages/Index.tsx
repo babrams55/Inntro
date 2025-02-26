@@ -16,7 +16,9 @@ export default function Index() {
   const navigate = useNavigate();
 
   const handleAccessRequest = async () => {
+    console.log('handleAccessRequest called');
     if (!email || !instagram || !university) {
+      console.log('Missing fields:', { email, instagram, university });
       toast({
         variant: "destructive",
         title: "Error",
@@ -24,7 +26,10 @@ export default function Index() {
       });
       return;
     }
+    
     setLoading(true);
+    console.log('Attempting to submit access request:', { email, instagram, university });
+    
     try {
       const { data, error } = await supabase
         .from('access_requests')
@@ -36,6 +41,8 @@ export default function Index() {
         }])
         .select()
         .single();
+
+      console.log('Supabase response:', { data, error });
 
       if (error) throw error;
 
@@ -147,18 +154,21 @@ export default function Index() {
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              className="bg-gray-900 text-white placeholder:text-white/70"
             />
             <Input
               type="text"
               placeholder="Instagram handle"
               value={instagram}
               onChange={e => setInstagram(e.target.value)}
+              className="bg-gray-900 text-white placeholder:text-white/70"
             />
             <Input
               type="text"
               placeholder="University"
               value={university}
               onChange={e => setUniversity(e.target.value)}
+              className="bg-gray-900 text-white placeholder:text-white/70"
             />
             <div className="space-y-2">
               <Button
