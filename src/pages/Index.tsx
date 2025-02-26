@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { CheckCircle2, XCircle } from "lucide-react";
 
-const ADMIN_CODE = "847519"; // Changed to a more random 6-digit sequence
+const ADMIN_CODE = "847519";
 
 export default function Index() {
   const [code, setCode] = useState("");
@@ -21,6 +21,7 @@ export default function Index() {
   const navigate = useNavigate();
 
   const fetchPendingRequests = async () => {
+    console.log('Fetching pending requests...');
     const { data, error } = await supabase
       .from('access_requests')
       .select('*')
@@ -32,6 +33,7 @@ export default function Index() {
       return;
     }
 
+    console.log('Fetched requests:', data);
     setPendingRequests(data || []);
   };
 
@@ -87,8 +89,8 @@ export default function Index() {
     setLoading(true);
 
     try {
-      // Directly insert into access_requests table instead of using the edge function
-      const { error } = await supabase
+      console.log('Submitting access request...');
+      const { data, error } = await supabase
         .from('access_requests')
         .insert([
           {
@@ -98,9 +100,15 @@ export default function Index() {
             approval_token: crypto.randomUUID(),
             status: 'pending'
           }
-        ]);
+        ])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error submitting request:', error);
+        throw error;
+      }
+
+      console.log('Access request submitted:', data);
       
       toast({
         title: "Request Sent Successfully",
@@ -112,6 +120,7 @@ export default function Index() {
       setInstagram("");
       setUniversity("");
     } catch (error: any) {
+      console.error('Error in handleAccessRequest:', error);
       toast({
         variant: "destructive",
         title: "Error Submitting Request",
@@ -136,6 +145,7 @@ export default function Index() {
     try {
       if (code === ADMIN_CODE) {
         setIsAdmin(true);
+        console.log('Admin access granted, fetching requests...');
         await fetchPendingRequests();
         toast({
           title: "Admin Access Granted",
@@ -167,6 +177,7 @@ export default function Index() {
 
       navigate("/city-selection");
     } catch (error) {
+      console.error('Error in handleSubmit:', error);
       toast({
         variant: "destructive",
         title: "Error",
