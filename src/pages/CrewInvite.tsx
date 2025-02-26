@@ -10,7 +10,6 @@ const CrewInvite = () => {
   const [loading, setLoading] = useState(false);
 
   const handleInvite = async () => {
-    // Validate email
     if (!email) {
       toast({
         variant: "destructive",
@@ -31,27 +30,31 @@ const CrewInvite = () => {
     }
 
     setLoading(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke('send-referral', {
+      const { data, error } = await supabase.functions.invoke("send-referral", {
         body: { email }
       });
 
-      if (error || !data?.success) {
-        console.error("Error response:", error || data);
-        throw new Error(error?.message || data?.error || "Failed to send invitation");
-      }
+      console.log("Response:", { data, error });
 
-      toast({
-        title: "Success!",
-        description: "Invitation sent successfully.",
-      });
-      setEmail("");
-    } catch (error: any) {
-      console.error('Error sending invitation:', error);
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Success!",
+          description: "Invitation sent successfully.",
+        });
+        setEmail("");
+      } else {
+        throw new Error("Failed to send invitation");
+      }
+    } catch (error) {
+      console.error("Error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send invitation. Please try again.",
+        description: "Failed to send invitation. Please try again.",
       });
     } finally {
       setLoading(false);
