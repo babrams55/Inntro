@@ -1,348 +1,281 @@
+
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { SwipeCard } from "@/components/SwipeCard";
+import { SwipeActions } from "@/components/SwipeActions";
+import { SwipeHeader } from "@/components/SwipeHeader";
+import { MatchesList } from "@/components/MatchesList";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { CheckCircle2, XCircle } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
-const ADMIN_CODE = "847519";
+type FriendPair = Database['public']['Tables']['friend_pairs']['Row'];
 
-export default function Index() {
-  const [code, setCode] = useState("");
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [email, setEmail] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [university, setUniversity] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+const Index = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [showMatches, setShowMatches] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [profiles, setProfiles] = useState<FriendPair[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPair, setCurrentPair] = useState<FriendPair | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralCopied, setReferralCopied] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchPendingRequests();
-    }
-  }, [isAdmin]);
+    fetchCurrentPair();
+    loadProfiles();
+  }, []);
 
-  const fetchPendingRequests = async () => {
-    console.log('Fetching pending requests...');
-    const { data, error } = await supabase
-      .from('access_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching requests:', error);
-      toast({
-        variant: "destructive",
-        title: "Error Fetching Requests",
-        description: error.message
-      });
+  const fetchCurrentPair = async () => {
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId) {
+      navigate('/city-selection');
       return;
     }
 
-    console.log('Fetched requests:', data);
-    setPendingRequests(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('friend_pairs')
+        .select('*')
+        .eq('id', currentPairId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setCurrentPair(data);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not find your profile"
+        });
+        navigate('/profile-setup');
+      }
+    } catch (error) {
+      console.error('Error fetching current pair:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load your profile"
+      });
+    }
   };
 
-  const handleRequestApproval = async (request: any, approved: boolean) => {
+  const loadProfiles = async () => {
+    const currentPairId = localStorage.getItem('currentPairId');
+    if (!currentPairId || !currentPair) return;
+
     try {
+      // Get all pairs we haven't liked yet
+      const { data: existingLikes } = await supabase
+        .from('pair_likes')
+        .select('to_pair_id')
+        .eq('from_pair_id', currentPairId);
+
+      const likedPairIds = existingLikes?.map(like => like.to_pair_id) || [];
+
+      // Get potential matches
+      const { data: newProfiles, error } = await supabase
+        .from('friend_pairs')
+        .select('*')
+        .neq('id', currentPairId)
+        .eq('city', localStorage.getItem('selectedCity') || 'NYC')
+        .neq('gender', currentPair.gender) // Only show opposite gender pairs
+        .not('id', 'in', `(${likedPairIds.join(',')})`)
+        .limit(10);
+
+      if (error) throw error;
+      setProfiles(newProfiles || []);
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load potential matches"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateNewCode = async () => {
+    if (!currentPair?.id) return;
+
+    try {
+      const code = `CREW${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       const { error } = await supabase
-        .from('access_requests')
-        .update({ 
-          status: approved ? 'approved' : 'rejected' 
-        })
-        .eq('id', request.id);
+        .from('pair_referrals')
+        .insert({
+          referral_code: code,
+          inviter_pair_id: currentPair.id
+        });
 
       if (error) throw error;
 
-      if (approved) {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { error: codeError } = await supabase
-          .from('referral_codes')
+      setReferralCode(code);
+      setReferralCopied(false);
+      
+      toast({
+        title: "New code generated!",
+        description: "Share this code with your friends"
+      });
+    } catch (error) {
+      console.error('Error generating code:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate referral code"
+      });
+    }
+  };
+
+  const handleSwipe = async (direction: 'left' | 'right') => {
+    if (!currentPair || !profiles[currentIndex]) return;
+
+    if (direction === 'right') {
+      // Record the like
+      const swipedProfile = profiles[currentIndex];
+      try {
+        const { error } = await supabase
+          .from('pair_likes')
           .insert({
-            code,
-            email_to: request.email,
-            created_by_email: 'support@inntro.us'
+            from_pair_id: currentPair.id,
+            to_pair_id: swipedProfile.id
           });
 
-        if (codeError) throw codeError;
+        if (error) throw error;
 
-        const emailResponse = await supabase.functions.invoke('send-approval', {
-          body: { email: request.email, code }
-        });
+        // Check for a match (the trigger will handle creating the match)
+        const { data: matches, error: matchError } = await supabase
+          .from('pair_matches')
+          .select('*')
+          .or(`pair1_id.eq.${currentPair.id},pair2_id.eq.${currentPair.id}`)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (emailResponse.error) {
-          console.error('Error sending approval email:', emailResponse.error);
-          toast({
-            variant: "destructive",
-            title: "Error Sending Email",
-            description: "The request was approved but we couldn't send the email."
-          });
-        }
-      }
+        if (matchError) throw matchError;
 
-      toast({
-        title: approved ? "Request Approved" : "Request Rejected",
-        description: `${request.email} has been ${approved ? 'approved' : 'rejected'}`
-      });
-
-      fetchPendingRequests();
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    }
-  };
-
-  const handleAccessRequest = async () => {
-    if (!email || !instagram || !university) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all fields"
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      console.log('Submitting access request...');
-      const { data, error } = await supabase
-        .from('access_requests')
-        .insert([
-          {
-            email,
-            instagram,
-            university,
-            approval_token: crypto.randomUUID(),
-            status: 'pending'
+        // If we found a new match with the swiped profile
+        if (matches && matches.length > 0) {
+          const match = matches[0];
+          if (match.pair1_id === swipedProfile.id || match.pair2_id === swipedProfile.id) {
+            toast({
+              title: "It's a match! 🎉",
+              description: "Start chatting with your new match!",
+              action: (
+                <Button onClick={() => navigate('/chat', { 
+                  state: { 
+                    matchId: match.id,
+                    currentPairId: currentPair.id,
+                    otherPairId: match.pair1_id === currentPair.id ? match.pair2_id : match.pair1_id,
+                    otherPairNames: `${swipedProfile.user1_email} & ${swipedProfile.user2_email}`
+                  }
+                })}>
+                  Open Chat
+                </Button>
+              )
+            });
           }
-        ])
-        .select();
-
-      if (error) {
-        console.error('Error submitting request:', error);
-        throw error;
-      }
-
-      console.log('Access request submitted:', data);
-      
-      toast({
-        title: "Request Sent Successfully",
-        description: "We'll review your request and get back to you soon!"
-      });
-      
-      setShowRequestForm(false);
-      setEmail("");
-      setInstagram("");
-      setUniversity("");
-    } catch (error: any) {
-      console.error('Error in handleAccessRequest:', error);
-      toast({
-        variant: "destructive",
-        title: "Error Submitting Request",
-        description: error.message || "Failed to submit request. Please try again."
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!code || code.length !== 6) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter a 6-digit access code"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (code === ADMIN_CODE) {
-        setIsAdmin(true);
-        console.log('Admin access granted, fetching requests...');
-        await fetchPendingRequests();
-        toast({
-          title: "Admin Access Granted",
-          description: "Welcome, admin!"
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('referral_codes')
-        .select()
-        .eq('code', code.toUpperCase())
-        .eq('used', false)
-        .single();
-
-      if (error || !data) {
+        }
+      } catch (error) {
+        console.error('Error recording like:', error);
         toast({
           variant: "destructive",
-          title: "Invalid Code",
-          description: "Please check your code and try again"
+          title: "Error",
+          description: "Failed to record like"
         });
-        return;
       }
+    }
 
-      await supabase
-        .from('referral_codes')
-        .update({ used: true })
-        .eq('id', data.id);
-
-      navigate("/city-selection");
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Something went wrong. Please try again."
-      });
-    } finally {
-      setLoading(false);
+    // Move to next profile
+    if (currentIndex >= profiles.length - 1) {
+      await loadProfiles();
+      setCurrentIndex(0);
+    } else {
+      setCurrentIndex(prev => prev + 1);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2 text-blue-500">Inntro Social</h1>
-          <p className="text-pink-400">&quot;double dates&quot;</p>
-        </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <p className="text-white">Loading...</p>
+      </div>
+    );
+  }
 
-        {isAdmin ? (
-          <>
-            <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-white font-semibold">Pending Requests ({pendingRequests.length})</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white"
-                  onClick={() => setIsAdmin(false)}
-                >
-                  Exit Admin
-                </Button>
-              </div>
-              {pendingRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded">
-                  <div className="text-sm text-white">
-                    <div>{request.email}</div>
-                    <div className="text-gray-400">{request.instagram} - {request.university}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                      onClick={() => handleRequestApproval(request, true)}
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                      onClick={() => handleRequestApproval(request, false)}
-                    >
-                      <XCircle className="h-5 w-5" />
-                    </Button>
-                  </div>
+  return (
+    <div className="min-h-screen bg-black flex flex-col">
+      <SwipeHeader
+        referralCode={referralCode}
+        referralCopied={referralCopied}
+        generateNewCode={generateNewCode}
+        onChatClick={() => setShowMatches(true)}
+      />
+
+      <div className="flex-1 relative">
+        {showMatches ? (
+          <div className="absolute inset-0 bg-black">
+            <div className="flex items-center p-4 border-b border-white/10">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMatches(false)}
+                className="text-white"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <h2 className="text-white text-lg ml-2">Your Matches</h2>
+            </div>
+            {currentPair && (
+              <MatchesList 
+                currentPairId={currentPair.id}
+                onClose={() => setShowMatches(false)}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 relative p-4">
+              {profiles.length > 0 ? (
+                <div className="h-full">
+                  {profiles.map((profile, index) => (
+                    index === currentIndex && (
+                      <SwipeCard
+                        key={profile.id}
+                        pair={{
+                          id: profile.id,
+                          names: `${profile.user1_email.split('@')[0]} & ${profile.user2_email.split('@')[0]}`,
+                          ages: profile.gender === 'M' ? 'Male Pair' : 'Female Pair',
+                          bio: profile.bio || 'No bio yet',
+                          image: profile.photo1_url || '/placeholder.svg'
+                        }}
+                        dragPosition={{ x: 0, y: 0 }}
+                        threshold={100}
+                      />
+                    )
+                  ))}
                 </div>
-              ))}
-              {pendingRequests.length === 0 && (
-                <p className="text-gray-400 text-center">No pending requests</p>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-white text-center">
+                    No more profiles to show.<br />
+                    Check back later!
+                  </p>
+                </div>
               )}
             </div>
-          </>
-        ) : (
-          !showRequestForm ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Enter access code"
-                  value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
-                  maxLength={6}
-                  pattern="\d{6}"
-                  className="text-center text-lg rounded-2xl bg-gray-900 text-white placeholder:text-white/70"
-                />
-                <Button
-                  className="w-full"
-                  onClick={handleSubmit}
-                  disabled={loading || !code || code.length !== 6}
-                >
-                  {loading ? "Checking..." : "Continue"}
-                </Button>
-              </div>
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  className="text-gray-400 hover:text-white"
-                  onClick={() => setShowRequestForm(true)}
-                >
-                  Request Access
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <Input
-                type="text"
-                placeholder="Instagram handle"
-                value={instagram}
-                onChange={e => setInstagram(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <Input
-                type="text"
-                placeholder="University"
-                value={university}
-                onChange={e => setUniversity(e.target.value)}
-                className="bg-gray-900 text-white placeholder:text-white/70"
-              />
-              <div className="space-y-2">
-                <Button
-                  className="w-full"
-                  onClick={handleAccessRequest}
-                  disabled={loading}
-                >
-                  {loading ? "Sending..." : "Submit Request"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full text-gray-400 hover:text-white"
-                  onClick={() => {
-                    setShowRequestForm(false);
-                    setEmail("");
-                    setInstagram("");
-                    setUniversity("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )
+            {profiles.length > 0 && (
+              <SwipeActions onSwipe={handleSwipe} />
+            )}
+          </div>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default Index;
