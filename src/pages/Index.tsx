@@ -149,6 +149,9 @@ const Index = () => {
               <Button variant="ghost" className="w-full text-gray-400 hover:text-white hover:bg-[#1A1A1A]" onClick={() => setIsRequestingAccess(true)} disabled={loading}>
                 Request Access
               </Button>
+              <p className="text-center text-gray-400 text-sm mt-2">
+                Inntro creates an exclusive paired dating experience
+              </p>
             </div>
           </div>}
       </div>
