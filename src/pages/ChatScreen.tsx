@@ -118,7 +118,7 @@ const ChatScreen = () => {
       // For now, just send a default recommendation
       // In a real implementation, we would use venue_preferences from the database
       const popularVenues = [
-        "Good Night John Boy",
+        "Texan Taco",
         "Ranalli's Lincoln Park",
         "Halligans",
         "Kirkwood",
