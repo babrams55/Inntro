@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle, Mail, User, ArrowRight } from "lucide-react";
+import { Upload, CheckCircle, Mail, User, ArrowRight, Instagram } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +20,7 @@ const ProfileSetup = () => {
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [bio, setBio] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [instagramValid, setInstagramValid] = useState<boolean | null>(null);
   const [step, setStep] = useState(1);
   const [sentInvite, setSentInvite] = useState(false);
 
@@ -46,6 +47,28 @@ const ProfileSetup = () => {
   const validateEmail = (emailAddress: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(emailAddress);
+  };
+
+  const validateInstagram = (handle: string) => {
+    // Instagram usernames can contain letters, numbers, periods and underscores
+    // and must be between 1 and 30 characters
+    if (!handle) return true; // Optional field
+    
+    const instagramRegex = /^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/;
+    return instagramRegex.test(handle);
+  };
+
+  const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Remove @ if user included it
+    const cleanValue = value.startsWith('@') ? value.substring(1) : value;
+    setInstagram(cleanValue);
+    
+    if (cleanValue) {
+      setInstagramValid(validateInstagram(cleanValue));
+    } else {
+      setInstagramValid(null); // No validation for empty field
+    }
   };
 
   const handleContinue = async () => {
@@ -76,6 +99,15 @@ const ProfileSetup = () => {
       return;
     }
 
+    if (instagram && !validateInstagram(instagram)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Instagram handle",
+        description: "Please enter a valid Instagram username",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       if (step === 1) {
@@ -87,6 +119,7 @@ const ProfileSetup = () => {
             user2_email: friendEmail || 'pending',
             gender: gender || 'pending',
             bio: bio || null,
+            instagram: instagram || null,
             city: "pending",
             status: friendEmail ? 'pending_friend' : 'pending_invite'
           })
@@ -99,6 +132,28 @@ const ProfileSetup = () => {
         }
 
         console.log("Created profile:", profile);
+        
+        // Upload photo to Supabase storage
+        if (photo) {
+          const fileName = `profile_${profile.id}_user1.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(fileName, photo);
+            
+          if (uploadError) {
+            console.error("Error uploading photo:", uploadError);
+            // Continue despite upload error
+          } else {
+            // Get the photo URL
+            const photoUrl = supabase.storage.from('profile-photos').getPublicUrl(fileName).data.publicUrl;
+            
+            // Update the profile with the photo URL
+            await supabase
+              .from('friend_pairs')
+              .update({ photo1_url: photoUrl })
+              .eq('id', profile.id);
+          }
+        }
         
         // If friend email is provided, send an invite
         if (friendEmail) {
@@ -115,12 +170,75 @@ const ProfileSetup = () => {
         }
       } else if (step === 2) {
         // User 2 flow - complete the pair
-        // This would use the referral code to update the existing pair
+        const referralCode = localStorage.getItem('referralCode');
+        if (!referralCode) {
+          toast({
+            variant: "destructive",
+            title: "Missing referral code",
+            description: "Cannot connect to your friend's profile"
+          });
+          return;
+        }
         
-        // Placeholder for now - we would need to implement the backend logic
-        // to connect this user with User 1 based on the referral code
+        // Get the referral
+        const { data: referral, error: referralError } = await supabase
+          .from('pair_referrals')
+          .select('inviter_pair_id')
+          .eq('referral_code', referralCode)
+          .single();
+          
+        if (referralError || !referral) {
+          toast({
+            variant: "destructive",
+            title: "Invalid referral",
+            description: "Could not find your friend's profile"
+          });
+          return;
+        }
         
-        // For demo, just go to city selection
+        // Update the friend pair with User 2's info
+        const { error: updateError } = await supabase
+          .from('friend_pairs')
+          .update({ 
+            user2_email: email,
+            status: 'active'
+          })
+          .eq('id', referral.inviter_pair_id);
+          
+        if (updateError) {
+          console.error("Error updating profile:", updateError);
+          throw updateError;
+        }
+        
+        // Upload photo to Supabase storage
+        if (photo) {
+          const fileName = `profile_${referral.inviter_pair_id}_user2.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(fileName, photo);
+            
+          if (uploadError) {
+            console.error("Error uploading photo:", uploadError);
+            // Continue despite upload error
+          } else {
+            // Get the photo URL
+            const photoUrl = supabase.storage.from('profile-photos').getPublicUrl(fileName).data.publicUrl;
+            
+            // Update the profile with the photo URL
+            await supabase
+              .from('friend_pairs')
+              .update({ photo2_url: photoUrl })
+              .eq('id', referral.inviter_pair_id);
+          }
+        }
+        
+        // Mark the referral as used
+        await supabase
+          .from('pair_referrals')
+          .update({ used: true, invitee_pair_id: referral.inviter_pair_id })
+          .eq('referral_code', referralCode);
+          
+        // Go to city selection
         navigate("/city-selection");
       }
       
@@ -274,13 +392,28 @@ const ProfileSetup = () => {
               </SelectContent>
             </Select>
 
-            <Input
-              type="text"
-              placeholder="Instagram handle (optional)"
-              value={instagram}
-              onChange={(e) => setInstagram(e.target.value)}
-              className="bg-gray-900 border-transparent text-white placeholder:text-white/70"
-            />
+            <div className="relative">
+              <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Instagram handle (without @)"
+                value={instagram}
+                onChange={handleInstagramChange}
+                className={`bg-gray-900 border-transparent text-white placeholder:text-white/70 pl-10 ${
+                  instagramValid === false ? "border-red-500" : 
+                  instagramValid === true ? "border-green-500" : ""
+                }`}
+              />
+              {instagramValid === false && (
+                <p className="text-red-500 text-xs mt-1">Please enter a valid Instagram handle</p>
+              )}
+              {instagram && instagramValid && (
+                <div className="mt-2 p-3 bg-gray-800 rounded-md flex items-center space-x-2">
+                  <Instagram className="w-5 h-5 text-pink-500" />
+                  <span className="text-white">@{instagram}</span>
+                </div>
+              )}
+            </div>
 
             <Textarea
               placeholder="Write a short bio (optional)"
@@ -294,7 +427,7 @@ const ProfileSetup = () => {
 
       <Button
         onClick={handleContinue}
-        disabled={loading || !email || !photo}
+        disabled={loading || !email || !photo || instagramValid === false}
         className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 py-2 flex items-center"
       >
         {loading ? "Processing..." : (step === 1 ? "Continue" : "Complete Profile")}
