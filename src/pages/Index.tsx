@@ -9,9 +9,7 @@ import { cn } from "@/lib/utils";
 
 const Index = () => {
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [accessCode, setAccessCode] = useState("");
   const [isRequestingAccess, setIsRequestingAccess] = useState(false);
   const [email, setEmail] = useState("");
@@ -79,13 +77,19 @@ const Index = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-access-request', {
-        body: {
+      // Generate a unique approval token
+      const approvalToken = crypto.randomUUID();
+      
+      // Insert the access request directly into the database
+      const { error } = await supabase
+        .from('access_requests')
+        .insert({
           email,
           university,
-          instagram
-        }
-      });
+          instagram,
+          status: 'pending',
+          approval_token: approvalToken
+        });
 
       if (error) throw error;
 
