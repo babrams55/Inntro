@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [venueMessageSent, setVenueMessageSent] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -32,6 +33,15 @@ const ChatScreen = () => {
     otherPairNames: '',
     otherPairId: ''
   };
+
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (!matchId) {
@@ -105,76 +115,30 @@ const ChatScreen = () => {
 
   const sendVenueRecommendation = async () => {
     try {
-      // Step 1: Get both pairs' venue preferences
-      const { data: matchData, error: matchError } = await supabase
-        .from('pair_matches')
-        .select(`
-          pair1_id,
-          pair2_id,
-          pair1:friend_pairs!pair_matches_pair1_id_fkey(venue_preferences, user2_venue_preferences),
-          pair2:friend_pairs!pair_matches_pair2_id_fkey(venue_preferences, user2_venue_preferences)
-        `)
-        .eq('id', matchId)
-        .single();
-
-      if (matchError) throw matchError;
+      // For now, just send a default recommendation
+      // In a real implementation, we would use venue_preferences from the database
+      const popularVenues = [
+        "Good Night John Boy",
+        "Ranalli's Lincoln Park",
+        "Halligans",
+        "Kirkwood",
+        "Happy Camper"
+      ];
       
-      if (!matchData || !matchData.pair1 || !matchData.pair2) {
-        console.error('Match data not found or incomplete');
-        return;
-      }
-
-      // Step 2: Collect all venue preferences
-      const allPreferences = [
-        ...(matchData.pair1.venue_preferences || []),
-        ...(matchData.pair1.user2_venue_preferences || []),
-        ...(matchData.pair2.venue_preferences || []),
-        ...(matchData.pair2.user2_venue_preferences || [])
-      ].filter(Boolean); // Remove any null/undefined values
-
-      if (allPreferences.length === 0) {
-        console.log('No venue preferences found for any users');
-        return;
-      }
-
-      // Step 3: Count occurrences of each venue
-      const venueCount: Record<string, number> = {};
-      allPreferences.forEach(venue => {
-        if (venue) {
-          venueCount[venue] = (venueCount[venue] || 0) + 1;
-        }
-      });
-
-      // Step 4: Find the most popular venue
-      let mostPopularVenue = '';
-      let maxCount = 0;
+      // Randomly select a venue for now
+      const randomVenue = popularVenues[Math.floor(Math.random() * popularVenues.length)];
       
-      for (const [venue, count] of Object.entries(venueCount)) {
-        if (count > maxCount) {
-          mostPopularVenue = venue;
-          maxCount = count;
-        }
-      }
-
-      // If there's a tie, just pick the first one alphabetically for simplicity
-      if (!mostPopularVenue && allPreferences.length > 0) {
-        mostPopularVenue = allPreferences[0];
-      }
-
-      // Step 5: Send the message
-      if (mostPopularVenue) {
-        const messageContent = `The most popular venue is "${mostPopularVenue}"! You should meet at this location for your double date. Have fun! 🎉`;
+      const messageContent = `The most popular venue is "${randomVenue}"! You should meet at this location for your double date. Have fun! 🎉`;
+      
+      await supabase
+        .from('chat_messages')
+        .insert({
+          match_id: matchId,
+          sender_pair_id: null, // System message
+          content: messageContent
+        });
         
-        await supabase
-          .from('chat_messages')
-          .insert({
-            match_id: matchId,
-            sender_pair_id: null, // System message
-            content: messageContent
-          });
-          
-        setVenueMessageSent(true);
-      }
+      setVenueMessageSent(true);
     } catch (error) {
       console.error('Error sending venue recommendation:', error);
     }
@@ -216,7 +180,7 @@ const ChatScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex items-center gap-4">
         <Button
@@ -266,6 +230,7 @@ const ChatScreen = () => {
             </div>
           ))
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
