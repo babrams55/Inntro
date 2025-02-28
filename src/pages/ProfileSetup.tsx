@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 // Chicago venue options
 const VENUE_OPTIONS = [
-  "Good Night John Boy",
+  "Texan Taco",
   "Ranalli's Lincoln Park",
   "Halligans",
   "Kirkwood",
