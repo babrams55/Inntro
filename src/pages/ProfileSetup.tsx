@@ -317,31 +317,69 @@ const ProfileSetup = () => {
             </SelectContent>
           </Select>
 
-          {/* Venue Selection */}
-          <div className="space-y-2">
-            <p className="text-white text-sm font-medium mb-2">Select 3 venues you'd like to visit:</p>
-            <div className="grid grid-cols-1 gap-2">
-              {VENUE_OPTIONS.map((venue) => (
-                <div 
-                  key={venue}
-                  onClick={() => toggleVenue(venue)}
-                  className={`
-                    p-3 rounded-md cursor-pointer flex items-center justify-between
-                    ${selectedVenues.includes(venue) 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}
-                  `}
-                >
-                  <span>{venue}</span>
-                  {selectedVenues.includes(venue) && (
-                    <CheckCircle className="h-5 w-5 text-white" />
-                  )}
-                </div>
-              ))}
+          {/* Venue Selection Bubbles */}
+          <div className="space-y-4">
+            <div className="flex flex-col items-center">
+              <h3 className="text-white text-lg font-medium mb-2">Where do you want to go?</h3>
+              <p className="text-gray-400 text-sm mb-4 text-center">
+                Select 3 venues you'd like to visit
+              </p>
+              
+              <div className="flex flex-wrap justify-center gap-3 mb-4">
+                {VENUE_OPTIONS.map((venue) => (
+                  <div 
+                    key={venue}
+                    onClick={() => toggleVenue(venue)}
+                    className={`
+                      relative group
+                      transition-all duration-200 ease-in-out
+                      ${selectedVenues.includes(venue) 
+                        ? 'scale-105' 
+                        : 'hover:scale-105'
+                      }
+                    `}
+                  >
+                    <div className={`
+                      w-[120px] h-[120px] rounded-full 
+                      flex items-center justify-center 
+                      text-center p-4
+                      transition-all duration-200
+                      border-4
+                      ${selectedVenues.includes(venue) 
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30' 
+                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
+                      }
+                    `}>
+                      <span className="text-sm font-medium">{venue}</span>
+                    </div>
+                    
+                    {selectedVenues.includes(venue) && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
+                        <CheckCircle className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center justify-center space-x-1 mt-2">
+                {[0, 1, 2].map((index) => (
+                  <div 
+                    key={index}
+                    className={`
+                      w-3 h-3 rounded-full
+                      ${index < selectedVenues.length 
+                        ? 'bg-blue-500' 
+                        : 'bg-gray-700'
+                      }
+                    `}
+                  />
+                ))}
+                <span className="ml-2 text-gray-400 text-sm">
+                  {selectedVenues.length}/3 selected
+                </span>
+              </div>
             </div>
-            <p className="text-gray-400 text-xs mt-1">
-              {selectedVenues.length}/3 selected
-            </p>
           </div>
         </div>
       </div>
