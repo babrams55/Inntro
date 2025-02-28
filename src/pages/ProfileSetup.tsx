@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, CheckCircle, User, ArrowRight } from "lucide-react";
+import { Upload, CheckCircle, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // Chicago venue options
 const VENUE_OPTIONS = [
@@ -23,7 +24,6 @@ const ProfileSetup = () => {
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
-  const [email, setEmail] = useState("");
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
   const [step, setStep] = useState(1);
@@ -47,11 +47,6 @@ const ProfileSetup = () => {
     }
   };
 
-  const validateEmail = (emailAddress: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(emailAddress);
-  };
-
   const toggleVenue = (venue: string) => {
     setSelectedVenues(prev => {
       // If already selected, remove it
@@ -70,20 +65,11 @@ const ProfileSetup = () => {
   };
 
   const handleContinue = async () => {
-    if (!email || !photo) {
+    if (!photo) {
       toast({
         variant: "destructive",
-        title: "Required fields missing",
-        description: "Please enter your email and upload a photo",
-      });
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      toast({
-        variant: "destructive",
-        title: "Invalid email",
-        description: "Please enter a valid email address",
+        title: "Photo required",
+        description: "Please upload a photo to continue",
       });
       return;
     }
@@ -108,12 +94,26 @@ const ProfileSetup = () => {
 
     setLoading(true);
     try {
+      // Get user email from local storage or query params
+      // In a real app, you would retrieve this from your auth system
+      const userEmail = localStorage.getItem('userEmail') || '';
+      
+      if (!userEmail) {
+        toast({
+          variant: "destructive",
+          title: "User email not found",
+          description: "Please return to the access request page",
+        });
+        setLoading(false);
+        return;
+      }
+      
       if (step === 1) {
         // Create a partial profile for User 1
         const { data: profile, error: profileError } = await supabase
           .from('friend_pairs')
           .insert({
-            user1_email: email,
+            user1_email: userEmail,
             user2_email: 'pending',
             gender: gender,
             venue_preferences: selectedVenues,
@@ -186,7 +186,7 @@ const ProfileSetup = () => {
         const { error: updateError } = await supabase
           .from('friend_pairs')
           .update({ 
-            user2_email: email,
+            user2_email: userEmail,
             user2_venue_preferences: selectedVenues,
             status: 'active'
           })
@@ -249,20 +249,20 @@ const ProfileSetup = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between bg-black pb-8">
+    <div className="min-h-screen flex flex-col items-center justify-between bg-[#0A0A0A] pb-8">
       <div className="w-full max-w-md px-4 py-8">
-        <h1 className="text-2xl font-bold mb-2 text-white text-center">
-          {step === 1 ? "Create Your Profile" : "Complete Your Profile"}
+        <h1 className="text-3xl font-bold mb-2 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
+          Your Resume
         </h1>
-        <p className="text-gray-400 mb-8 text-center">
+        <p className="text-pink-500 text-center mb-8">
           {step === 1 ? "Tell us about yourself" : "You've been invited to join Inntro"}
         </p>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Photo Upload */}
           <div className="flex flex-col items-center mb-6">
             <div 
-              className="w-32 h-32 rounded-full bg-gray-900 border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden mb-3"
+              className="w-36 h-36 rounded-full bg-[#1A1A1A] border-2 border-dashed border-[#2A2A2A] flex items-center justify-center overflow-hidden mb-4 shadow-lg shadow-purple-500/10"
               style={{
                 backgroundImage: photoPreview ? `url(${photoPreview})` : 'none',
                 backgroundSize: 'cover',
@@ -271,8 +271,8 @@ const ProfileSetup = () => {
             >
               {!photoPreview && (
                 <div className="text-center p-4">
-                  <Upload className="w-6 h-6 mx-auto mb-1 text-gray-400" />
-                  <span className="text-xs text-gray-400">Your photo</span>
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <span className="text-sm text-gray-400">Your photo</span>
                 </div>
               )}
             </div>
@@ -287,54 +287,45 @@ const ProfileSetup = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="bg-transparent border-white/20 text-white hover:bg-white/10 text-sm"
+                className={cn(
+                  "bg-transparent border-[#2A2A2A] text-white hover:bg-white/5 text-sm px-6",
+                  "rounded-full transition-all duration-200"
+                )}
               >
                 {photoPreview ? "Change Photo" : "Upload Headshot"}
               </Button>
             </label>
           </div>
 
-          {/* Email Input */}
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-gray-900 border-transparent text-white placeholder:text-white/70 pl-10"
-            />
-          </div>
-
           {/* Gender Selection */}
           <Select value={gender} onValueChange={(value: "M" | "F") => setGender(value)}>
-            <SelectTrigger className="w-full bg-gray-900 border-transparent text-white">
+            <SelectTrigger className="w-full bg-[#1A1A1A] border-[#2A2A2A] text-white rounded-lg">
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
-            <SelectContent className="bg-black/90 border-white/20">
-              <SelectItem value="M" className="text-white hover:bg-white/10">Male</SelectItem>
-              <SelectItem value="F" className="text-white hover:bg-white/10">Female</SelectItem>
+            <SelectContent className="bg-[#0A0A0A]/95 border-[#2A2A2A]">
+              <SelectItem value="M" className="text-white hover:bg-[#2A2A2A]">Male</SelectItem>
+              <SelectItem value="F" className="text-white hover:bg-[#2A2A2A]">Female</SelectItem>
             </SelectContent>
           </Select>
 
           {/* Venue Selection Bubbles */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex flex-col items-center">
-              <h3 className="text-white text-lg font-medium mb-2">Where do you want to go?</h3>
-              <p className="text-gray-400 text-sm mb-4 text-center">
+              <h3 className="text-white text-xl font-medium mb-2">Where do you want to go?</h3>
+              <p className="text-gray-400 text-sm mb-6 text-center">
                 Select 3 venues you'd like to visit
               </p>
               
-              <div className="flex flex-wrap justify-center gap-3 mb-4">
+              <div className="flex flex-wrap justify-center gap-4 mb-6">
                 {VENUE_OPTIONS.map((venue) => (
                   <div 
                     key={venue}
                     onClick={() => toggleVenue(venue)}
                     className={`
-                      relative group
-                      transition-all duration-200 ease-in-out
+                      relative group cursor-pointer
+                      transition-all duration-300 ease-in-out
                       ${selectedVenues.includes(venue) 
-                        ? 'scale-105' 
+                        ? 'scale-105 z-10' 
                         : 'hover:scale-105'
                       }
                     `}
@@ -343,18 +334,18 @@ const ProfileSetup = () => {
                       w-[120px] h-[120px] rounded-full 
                       flex items-center justify-center 
                       text-center p-4
-                      transition-all duration-200
-                      border-4
+                      transition-all duration-300
+                      border-3
                       ${selectedVenues.includes(venue) 
-                        ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30' 
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
+                        ? 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 border-purple-300 text-white shadow-lg shadow-purple-500/30' 
+                        : 'bg-[#1A1A1A] border-[#2A2A2A] text-gray-300 hover:bg-[#252525]'
                       }
                     `}>
                       <span className="text-sm font-medium">{venue}</span>
                     </div>
                     
                     {selectedVenues.includes(venue) && (
-                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
+                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 shadow-md">
                         <CheckCircle className="h-4 w-4 text-white" />
                       </div>
                     )}
@@ -362,15 +353,15 @@ const ProfileSetup = () => {
                 ))}
               </div>
               
-              <div className="flex items-center justify-center space-x-1 mt-2">
+              <div className="flex items-center justify-center space-x-2 mt-2">
                 {[0, 1, 2].map((index) => (
                   <div 
                     key={index}
                     className={`
-                      w-3 h-3 rounded-full
+                      w-3 h-3 rounded-full transition-all duration-300
                       ${index < selectedVenues.length 
-                        ? 'bg-blue-500' 
-                        : 'bg-gray-700'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 scale-110' 
+                        : 'bg-[#2A2A2A]'
                       }
                     `}
                   />
@@ -386,8 +377,12 @@ const ProfileSetup = () => {
 
       <Button
         onClick={handleContinue}
-        disabled={loading || !email || !photo || !gender || selectedVenues.length < 3}
-        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 py-2 flex items-center"
+        disabled={loading || !photo || !gender || selectedVenues.length < 3}
+        className={cn(
+          "bg-gradient-to-r from-blue-500 to-purple-500",
+          "hover:from-blue-600 hover:to-purple-600 text-white font-medium",
+          "rounded-full px-8 py-2 flex items-center shadow-lg shadow-purple-500/20"
+        )}
       >
         {loading ? "Processing..." : (step === 1 ? "Continue" : "Complete Profile")}
         <ArrowRight className="ml-2 h-4 w-4" />
