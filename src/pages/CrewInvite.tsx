@@ -69,8 +69,15 @@ const CrewInvite = () => {
       });
       
       setEmail("");
-      console.log("Navigating to profile-setup");
-      navigate("/profile-setup");
+      console.log("Navigating to swipe");
+      
+      // Store the invitation code in case we need it later
+      if (data.data && data.data.code) {
+        localStorage.setItem('lastInviteCode', data.data.code);
+      }
+      
+      // For the real app, we would navigate to swipe or city selection here
+      navigate("/swipe");
     } catch (error: any) {
       console.error("Full error details:", error);
       toast({

@@ -8,6 +8,7 @@ import ProfileSetup from "./pages/ProfileSetup";
 import SwipeScreen from "./pages/SwipeScreen";
 import ChatScreen from "./pages/ChatScreen";
 import CrewInvite from "./pages/CrewInvite";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   console.log("Current pathname:", window.location.pathname);
@@ -21,6 +22,7 @@ function App() {
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/swipe" element={<SwipeScreen />} />
         <Route path="/chat" element={<ChatScreen />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

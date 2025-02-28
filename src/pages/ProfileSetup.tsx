@@ -27,15 +27,28 @@ const ProfileSetup = () => {
   const [gender, setGender] = useState<"M" | "F" | "">("");
   const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
   const [step, setStep] = useState(1);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
 
   // Check if we're arriving with a referral code from a friend
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const referralCode = params.get('code') || localStorage.getItem('referralCode');
+    const code = params.get('code');
     
-    if (referralCode) {
+    if (code) {
+      // Store the referral code in localStorage for later use
+      localStorage.setItem('referralCode', code);
+      setReferralCode(code);
       // We're User 2, skip to step 2 and load friend's info
       setStep(2);
+      console.log("Referral code detected:", code);
+    } else {
+      // Check if we have a stored referral code
+      const storedCode = localStorage.getItem('referralCode');
+      if (storedCode) {
+        setReferralCode(storedCode);
+        setStep(2);
+        console.log("Using stored referral code:", storedCode);
+      }
     }
   }, [location]);
 
@@ -94,8 +107,7 @@ const ProfileSetup = () => {
 
     setLoading(true);
     try {
-      // Get user email from local storage or query params
-      // In a real app, you would retrieve this from your auth system
+      // Get user email from local storage
       const userEmail = localStorage.getItem('userEmail') || '';
       
       if (!userEmail) {
@@ -109,6 +121,12 @@ const ProfileSetup = () => {
       }
       
       if (step === 1) {
+        // Create storage bucket if it doesn't exist
+        const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('profile-photos');
+        if (bucketError && bucketError.message.includes('not found')) {
+          await supabase.storage.createBucket('profile-photos', { public: true });
+        }
+        
         // Create a partial profile for User 1
         const { data: profile, error: profileError } = await supabase
           .from('friend_pairs')
@@ -152,11 +170,13 @@ const ProfileSetup = () => {
           }
         }
         
+        // Save pair ID to localStorage
+        localStorage.setItem('pairId', profile.id);
+        
         // Go to invite friend page to send invitation
         navigate("/crew-invite");
       } else if (step === 2) {
         // User 2 flow - complete the pair
-        const referralCode = localStorage.getItem('referralCode');
         if (!referralCode) {
           toast({
             variant: "destructive",
@@ -171,7 +191,7 @@ const ProfileSetup = () => {
           .from('pair_referrals')
           .select('inviter_pair_id')
           .eq('referral_code', referralCode)
-          .single();
+          .maybeSingle();
           
         if (referralError || !referral) {
           toast({
@@ -196,6 +216,9 @@ const ProfileSetup = () => {
           console.error("Error updating profile:", updateError);
           throw updateError;
         }
+        
+        // Save pair ID to localStorage
+        localStorage.setItem('pairId', referral.inviter_pair_id);
         
         // Upload photo to Supabase storage
         if (photo) {
