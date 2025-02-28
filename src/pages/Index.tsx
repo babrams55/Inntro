@@ -93,6 +93,9 @@ const Index = () => {
 
       if (error) throw error;
 
+      // Store the email for future use
+      localStorage.setItem('userEmail', email);
+
       toast({
         title: "Request submitted!",
         description: "We'll review your request and get back to you soon."
